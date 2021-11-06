@@ -1,0 +1,32 @@
+spring:
+  profiles:
+    active: local
+  datasource:
+    url: jdbc:h2:tcp://localhost/~/Documents/dev/h2/jpastarter
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        #        show_sql: true
+        format_sql: true
+        default_batch_fetch_size: 256    # 첫번째 쿼리 결과 리스트에서 각 하위 객체 Lazy Loading 시 In 으로 한꺼번에 가져오기 옵션
+                                         # 처음에 100개로 두고 테스트 해보면서 필요에 따라 늘려나간다. 단 한계치는 1000 이다.
+                                         # in 쿼리에 한번에 1000개가 넘어가면 오류를 일으키는 데이터베이스들이 있기 때문.
+        batch_fetch_style: dynamic        # 위의 옵션과 관련
+        query:
+          in_clause_parameter_padding: true   # SQL In Clause 사용 시 In 에 2의 제곱 수로만 In 절 생성하도록 해주는 옵션
+    open-in-view: false
+  data:
+    web:
+      pageable:
+        default-page-size: 20
+logging:
+  level:
+    practice.jpastarter: debug
+    org.hibernate.SQL: debug
+#    org.hibernate.type: trace
+
