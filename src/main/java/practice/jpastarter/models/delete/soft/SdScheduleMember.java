@@ -1,4 +1,4 @@
-package practice.jpastarter.models;
+package practice.jpastarter.models.delete.soft;
 
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -12,10 +12,10 @@ import javax.persistence.*;
  */
 
 @Entity
-@Table(name = "SCHEDULE_MEMBER")
+@Table(name = "SD_SCHEDULE_MEMBER")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
-public class ScheduleMember extends BaseEntity {
+public class SdScheduleMember extends SoftDeleteEntity {
     @Id
     @GeneratedValue
     @Column(name = "SCHEDULE_MEMBER_ID")
@@ -23,14 +23,18 @@ public class ScheduleMember extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "SCHEDULE_ID")
-    private Schedule schedule;
+    private SdSchedule schedule;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "MEMBER_ID")
-    private Member member;
+    private SdMember member;
 
-    public ScheduleMember(Schedule schedule, Member member) {
+    public SdScheduleMember(SdSchedule schedule, SdMember member) {
         this.schedule = schedule;
         this.member = member;
+    }
+
+    public Long getMemberId() {
+        return getMember().getId();
     }
 }

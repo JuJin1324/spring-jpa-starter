@@ -1,15 +1,19 @@
-package practice.jpastarter.models;
+package practice.jpastarter.models.delete.hard;
 
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import practice.jpastarter.dtos.MemberDto;
+import practice.jpastarter.models.BaseEntity;
+import practice.jpastarter.models.delete.soft.SdScheduleMember;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -18,10 +22,10 @@ import java.util.stream.Collectors;
  */
 
 @Entity
-@Table(name = "SCHEDULE")
+@Table(name = "HD_SCHEDULE")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
-public class Schedule extends BaseEntity {
+public class HdSchedule extends BaseEntity {
     @Id
     @GeneratedValue
     @Column(name = "SCHEDULE_ID")
@@ -34,21 +38,21 @@ public class Schedule extends BaseEntity {
     private LocalDateTime endTimeUTC;
 
     @OneToMany(mappedBy = "schedule", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private final List<ScheduleMember> scheduleMembers = new ArrayList<>();
+    private final List<HdScheduleMember> scheduleMembers = new ArrayList<>();
 
-    protected Schedule(String title, LocalDateTime startTimeUTC, LocalDateTime endTimeUTC) {
+    protected HdSchedule(String title, LocalDateTime startTimeUTC, LocalDateTime endTimeUTC) {
         this.title = title;
         this.startTimeUTC = startTimeUTC;
         this.endTimeUTC = endTimeUTC;
     }
 
-    public static Schedule newSchedule(String title, ZonedDateTime startTimeKST, ZonedDateTime endTimeKST, Member... members) {
+    public static HdSchedule newSchedule(String title, ZonedDateTime startTimeKST, ZonedDateTime endTimeKST, HdMember... members) {
         LocalDateTime startTimeUTC = startTimeKST.withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime();
         LocalDateTime endTimeUTC = endTimeKST.withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime();
 
-        Schedule schedule = new Schedule(title, startTimeUTC, endTimeUTC);
-        List<ScheduleMember> scheduleMembers = Arrays.stream(members)
-                .map(member -> new ScheduleMember(schedule, member))
+        HdSchedule schedule = new HdSchedule(title, startTimeUTC, endTimeUTC);
+        List<HdScheduleMember> scheduleMembers = Arrays.stream(members)
+                .map(member -> new HdScheduleMember(schedule, member))
                 .collect(Collectors.toList());
         schedule.getScheduleMembers().addAll(scheduleMembers);
         return schedule;
@@ -70,13 +74,28 @@ public class Schedule extends BaseEntity {
                 .withZoneSameInstant(ZoneId.of("Asia/Seoul"));
     }
 
-    public void update(String title, ZonedDateTime startTimeKST, ZonedDateTime endTimeKST, Member... members) {
+    public void update(String title, ZonedDateTime startTimeKST, ZonedDateTime endTimeKST, HdMember... members) {
         this.title = title;
         this.startTimeUTC = startTimeKST.withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime();
         this.endTimeUTC = endTimeKST.withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime();
-        List<ScheduleMember> scheduleMembers = Arrays.stream(members)
-                .map(member -> new ScheduleMember(this, member))
+        /* Hard Delete 방식 */
+        List<HdMember> filteredMembers = filterNotInScheduleMembers(Arrays.asList(members));
+        List<HdScheduleMember> newScheduleMembers = filteredMembers.stream()
+                .map(member -> new HdScheduleMember(this, member))
                 .collect(Collectors.toList());
-        this.getScheduleMembers().addAll(scheduleMembers);
+        this.getScheduleMembers().addAll(newScheduleMembers);
+    }
+
+    public Optional<HdScheduleMember> findScheduleMember(Long memberId) {
+        return this.getScheduleMembers().stream()
+                .filter(scheduleMember -> scheduleMember.getMemberId().equals(memberId))
+                .findAny();
+    }
+
+    private List<HdMember> filterNotInScheduleMembers(List<HdMember> members) {
+        return members.stream()
+                .filter(member -> this.getScheduleMembers().stream()
+                        .noneMatch(scheduleMember -> scheduleMember.getMemberId().equals(member.getId())))
+                .collect(Collectors.toList());
     }
 }

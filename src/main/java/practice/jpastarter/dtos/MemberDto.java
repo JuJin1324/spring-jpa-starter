@@ -2,7 +2,8 @@ package practice.jpastarter.dtos;
 
 import lombok.Getter;
 import lombok.ToString;
-import practice.jpastarter.models.Member;
+import practice.jpastarter.models.delete.hard.HdMember;
+import practice.jpastarter.models.delete.soft.SdMember;
 
 /**
  * Created by Yoo Ju Jin(jujin1324@daum.net)
@@ -22,7 +23,13 @@ public class MemberDto {
         this.age = age;
     }
 
-    public MemberDto(Member member) {
+    public MemberDto(HdMember member) {
+        this.memberId = member.getId();
+        this.name = member.getName();
+        this.age = member.getAge();
+    }
+
+    public MemberDto(SdMember member) {
         this.memberId = member.getId();
         this.name = member.getName();
         this.age = member.getAge();

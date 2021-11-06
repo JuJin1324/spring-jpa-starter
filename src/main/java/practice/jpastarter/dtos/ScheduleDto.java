@@ -2,7 +2,8 @@ package practice.jpastarter.dtos;
 
 import lombok.Getter;
 import lombok.ToString;
-import practice.jpastarter.models.Schedule;
+import practice.jpastarter.models.delete.hard.HdSchedule;
+import practice.jpastarter.models.delete.soft.SdSchedule;
 
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -33,7 +34,17 @@ public class ScheduleDto {
         this.memberDtos = memberDtos;
     }
 
-    public ScheduleDto(Schedule schedule) {
+    public ScheduleDto(HdSchedule schedule) {
+        this.scheduleId = schedule.getId();
+        this.title = schedule.getTitle();
+        this.startTimeKST = schedule.getStartTimeKST();
+        this.endTimeKST = schedule.getEndTimeKST();
+        this.memberDtos = schedule.getScheduleMembers().stream()
+                .map(scheduleMember -> new MemberDto(scheduleMember.getMember()))
+                .collect(Collectors.toList());
+    }
+
+    public ScheduleDto(SdSchedule schedule) {
         this.scheduleId = schedule.getId();
         this.title = schedule.getTitle();
         this.startTimeKST = schedule.getStartTimeKST();
