@@ -11,7 +11,10 @@ import java.util.List;
  */
 public interface ScheduleService {
     Long createSchedule(String title, ZonedDateTime startTimeKST, ZonedDateTime endTimeKST, List<Long> memberIds);
+
     void updateSchedule(Long scheduleId, String title, ZonedDateTime startTimeKST, ZonedDateTime endTimeKST, List<Long> memberIds);
+
     ScheduleDto getSingleSchedule(Long scheduleId);
+
     void deleteMembersInSchedule(Long scheduleId, List<Long> memberIds);
 }

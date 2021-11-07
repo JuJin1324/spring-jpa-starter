@@ -8,7 +8,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import practice.jpastarter.dtos.MemberDto;
 import practice.jpastarter.dtos.ScheduleDto;
 import practice.jpastarter.models.delete.hard.HdMember;
-import practice.jpastarter.models.delete.soft.SdMember;
 import practice.jpastarter.repositories.delete.hard.HdMemberRepository;
 
 import java.time.ZoneId;
@@ -27,11 +26,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 class HdScheduleServiceTest {
-    private static final String        OLD_TITLE      = "Spring Test 기존 일정 타이틀";
-    private static final String        NEW_TITLE      = "Spring Test 신규 일정 타이틀";
-    private static final ZonedDateTime START_TIME_KST = ZonedDateTime.now(ZoneId.of("Asia/Seoul"));
-    private static final ZonedDateTime END_TIME_KST   = START_TIME_KST.plusHours(2);
-    private List<HdMember>             members;
+    private static final String         OLD_TITLE      = "Spring Test 기존 일정 타이틀";
+    private static final String         NEW_TITLE      = "Spring Test 신규 일정 타이틀";
+    private static final ZonedDateTime  START_TIME_KST = ZonedDateTime.now(ZoneId.of("Asia/Seoul"));
+    private static final ZonedDateTime  END_TIME_KST   = START_TIME_KST.plusHours(2);
+    private              List<HdMember> members;
 
     @Autowired
     private HdMemberRepository memberRepository;

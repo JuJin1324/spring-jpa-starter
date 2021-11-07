@@ -5,18 +5,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import practice.jpastarter.dtos.ScheduleDto;
 import practice.jpastarter.exceptions.ResourceNotFoundException;
-import practice.jpastarter.models.delete.hard.HdMember;
-import practice.jpastarter.models.delete.hard.HdSchedule;
 import practice.jpastarter.models.delete.soft.SdMember;
 import practice.jpastarter.models.delete.soft.SdSchedule;
 import practice.jpastarter.models.delete.soft.SdScheduleMember;
-import practice.jpastarter.models.delete.soft.SoftDeleteEntity;
 import practice.jpastarter.repositories.delete.soft.SdMemberRepository;
 import practice.jpastarter.repositories.delete.soft.SdScheduleRepository;
 
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Created by Yoo Ju Jin(jujin1324@daum.net)
