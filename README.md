@@ -11,4 +11,11 @@
 ### 복합키
 > @Id 는 동일성 / 동등성 비교를 위해서 @EqualsAndHashcode 구현이 필요함.
 
-
+## Repository
+### JpaRepository vs CommonRepository
+> 일반적인 Hard Delete 를 사용하게되면 Repository 를 구현시 JpaRepository 를 상속받아 구현할 수 있다. 
+> 하지만 Soft Delete 시 JpaRepository 에서 기본 제공하는 findXXX 메서드를 그대로 사용하면 delFlag 를 필터할 수 없음으로 
+> Repository 인터페이스를 상속한 CommonRepository 를 만들고 Repository 가 CommonRepository 상속하도록 하며 
+> Repository 에 선언한 메서드들만 외부로 노출한다.
+>
+> Hard Delete 를 사용하는 경우에도 Repository 에 선언한 메서드만 외부로 노출하고 싶은 경우 CommonRepository 를 상속하여 사용한다.
