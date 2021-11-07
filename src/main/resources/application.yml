@@ -2,7 +2,7 @@ spring:
   profiles:
     active: local
   datasource:
-    url: jdbc:h2:tcp://localhost/~/Documents/dev/h2/jpastarter
+    url: jdbc:h2:tcp://localhost/~/Documents/dev/h2/starter-practice
     username: sa
     password:
     driver-class-name: org.h2.Driver
