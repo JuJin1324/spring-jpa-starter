@@ -4,12 +4,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import practice.jpastarter.dtos.MemberDto;
+import practice.jpastarter.exceptions.GenerateUUIDException;
 import practice.jpastarter.exceptions.ResourceDuplicateException;
 import practice.jpastarter.exceptions.ResourceNotFoundException;
 import practice.jpastarter.models.delete.soft.SdMember;
 import practice.jpastarter.repositories.delete.soft.SdMemberRepository;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -36,7 +38,7 @@ public class SdMemberService implements MemberService {
                     return member.getId();
                 })
                 .orElseGet(() -> {
-                    SdMember newMember = memberRepository.save(new SdMember(name, age, phone));
+                    SdMember newMember = memberRepository.save(new SdMember(generateUUID(), name, age, phone));
                     return newMember.getId();
                 });
     }
@@ -67,5 +69,16 @@ public class SdMemberService implements MemberService {
         SdMember member = memberRepository.findOneById(memberId)
                 .orElseThrow(ResourceNotFoundException::new);
         member.delete();
+    }
+
+    private String generateUUID() {
+        final int retryCount = 10;
+        for (int i = 0; i < retryCount; i++) {
+            String uuid = UUID.randomUUID().toString();
+            if (memberRepository.findOneByUuidWithDeleted(uuid).isEmpty()) {
+                return uuid;
+            }
+        }
+        throw new GenerateUUIDException();
     }
 }

@@ -22,6 +22,9 @@ public class HdMember extends BaseEntity {
     @Column(name = "MEMBER_ID")
     private Long id;
 
+    @Column(name = "UUID", unique = true)
+    private String uuid;
+
     @Column(name = "NAME")
     private String name;
 
@@ -31,7 +34,8 @@ public class HdMember extends BaseEntity {
     @Column(name = "PHONE")
     private String phone;
 
-    public HdMember(String name, Integer age, String phone) {
+    public HdMember(String uuid, String name, Integer age, String phone) {
+        this.uuid = uuid;
         this.name = name;
         this.age = age;
         this.phone = phone;

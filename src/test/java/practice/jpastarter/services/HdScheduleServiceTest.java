@@ -16,6 +16,7 @@ import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,9 +42,9 @@ class HdScheduleServiceTest {
     @BeforeEach
     void setUp() {
         members = Arrays.asList(
-                new HdMember("기존 유저1", 10, "01011110001"),
-                new HdMember("기존 유저2", 20, "01011110002"),
-                new HdMember("신규 유저3", 30, "01011110003"));
+                new HdMember(UUID.randomUUID().toString(), "기존 유저1", 10, "01011110001"),
+                new HdMember(UUID.randomUUID().toString(), "기존 유저2", 20, "01011110002"),
+                new HdMember(UUID.randomUUID().toString(), "신규 유저3", 30, "01011110003"));
         memberRepository.saveAll(members);
     }
 

@@ -25,6 +25,9 @@ public interface SdMemberRepository extends CommonRepository<SdMember, Long> {
     @Query("select m from SdMember m where m.phone = :phone")
     Optional<SdMember> findOneByPhoneWithDeleted(@Param("phone") String phone);
 
+    @Query("select m from SdMember m where m.uuid = :uuid")
+    Optional<SdMember> findOneByUuidWithDeleted(@Param("uuid") String uuid);
+
     <S extends SdMember> List<S> saveAll(Iterable<S> entities);
 
     <S extends SdMember> S save(S entity);

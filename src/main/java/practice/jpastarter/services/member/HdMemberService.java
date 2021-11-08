@@ -4,12 +4,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import practice.jpastarter.dtos.MemberDto;
+import practice.jpastarter.exceptions.GenerateUUIDException;
 import practice.jpastarter.exceptions.ResourceDuplicateException;
 import practice.jpastarter.exceptions.ResourceNotFoundException;
 import practice.jpastarter.models.delete.hard.HdMember;
 import practice.jpastarter.repositories.delete.hard.HdMemberRepository;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -30,7 +32,7 @@ public class HdMemberService implements MemberService {
         if (memberRepository.findOneByPhone(phone).isPresent()) {
             throw new ResourceDuplicateException();
         }
-        HdMember member = memberRepository.save(new HdMember(name, age, phone));
+        HdMember member = memberRepository.save(new HdMember(generateUUID(), name, age, phone));
         return member.getId();
     }
 
@@ -60,5 +62,16 @@ public class HdMemberService implements MemberService {
     @Override
     public void deleteMember(Long memberId) {
         memberRepository.deleteById(memberId);
+    }
+
+    private String generateUUID() {
+        final int retryCount = 10;
+        for (int i = 0; i < retryCount; i++) {
+            String uuid = UUID.randomUUID().toString();
+            if (memberRepository.findOneByUuid(uuid).isEmpty()) {
+                return uuid;
+            }
+        }
+        throw new GenerateUUIDException();
     }
 }

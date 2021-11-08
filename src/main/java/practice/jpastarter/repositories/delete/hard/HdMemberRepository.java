@@ -18,6 +18,8 @@ public interface HdMemberRepository extends CommonRepository<HdMember, Long> {
     Optional<HdMember> findOneByPhone(String phone);
     Optional<HdMember> findOneById(Long id);
 
+    Optional<HdMember> findOneByUuid(String uuid);
+
     <S extends HdMember> List<S> saveAll(Iterable<S> entities);
 
     <S extends HdMember> S save(S entity);
