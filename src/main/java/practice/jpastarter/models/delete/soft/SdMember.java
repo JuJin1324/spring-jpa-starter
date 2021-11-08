@@ -30,7 +30,7 @@ public class SdMember extends SoftDeleteEntity {
     @Column(name = "AGE")
     private Integer age;
 
-    @Column(name = "PHONE")
+    @Column(name = "PHONE", unique = true)
     private String phone;
 
     public SdMember(String uuid, String name, Integer age, String phone) {

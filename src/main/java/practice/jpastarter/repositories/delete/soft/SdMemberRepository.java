@@ -22,6 +22,9 @@ public interface SdMemberRepository extends CommonRepository<SdMember, Long> {
     @Query("select m from SdMember m where m.id = :id and m.delFlag = 'N'")
     Optional<SdMember> findOneById(@Param("id") Long id);
 
+    @Query("select m from SdMember m where m.phone = :phone and m.delFlag = 'N'")
+    Optional<SdMember> findOneByPhone(@Param("phone") String phone);
+
     @Query("select m from SdMember m where m.phone = :phone")
     Optional<SdMember> findOneByPhoneWithDeleted(@Param("phone") String phone);
 

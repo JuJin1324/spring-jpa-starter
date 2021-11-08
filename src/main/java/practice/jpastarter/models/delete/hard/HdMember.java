@@ -31,7 +31,7 @@ public class HdMember extends BaseEntity {
     @Column(name = "AGE")
     private Integer age;
 
-    @Column(name = "PHONE")
+    @Column(name = "PHONE", unique = true)
     private String phone;
 
     public HdMember(String uuid, String name, Integer age, String phone) {
