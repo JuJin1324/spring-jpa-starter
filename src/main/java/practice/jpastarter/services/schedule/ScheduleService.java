@@ -1,4 +1,4 @@
-package practice.jpastarter.services;
+package practice.jpastarter.services.schedule;
 
 import practice.jpastarter.dtos.ScheduleDto;
 

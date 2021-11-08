@@ -26,10 +26,20 @@ public class HdMember extends BaseEntity {
     private String name;
 
     @Column(name = "AGE")
-    private int age;
+    private Integer age;
 
-    public HdMember(String name, int age) {
+    @Column(name = "PHONE")
+    private String phone;
+
+    public HdMember(String name, Integer age, String phone) {
         this.name = name;
         this.age = age;
+        this.phone = phone;
+    }
+
+    public void update(String name, Integer age, String phone) {
+        this.name = name;
+        this.age = age;
+        this.phone = phone;
     }
 }

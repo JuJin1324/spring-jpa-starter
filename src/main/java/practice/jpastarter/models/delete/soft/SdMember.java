@@ -25,10 +25,20 @@ public class SdMember extends SoftDeleteEntity {
     private String name;
 
     @Column(name = "AGE")
-    private int age;
+    private Integer age;
 
-    public SdMember(String name, int age) {
+    @Column(name = "PHONE")
+    private String phone;
+
+    public SdMember(String name, Integer age, String phone) {
         this.name = name;
         this.age = age;
+        this.phone = phone;
+    }
+
+    public void update(String name, Integer age, String phone) {
+        this.name = name;
+        this.age = age;
+        this.phone = phone;
     }
 }

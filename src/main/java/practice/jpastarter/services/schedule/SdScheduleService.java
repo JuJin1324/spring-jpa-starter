@@ -1,4 +1,4 @@
-package practice.jpastarter.services;
+package practice.jpastarter.services.schedule;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,7 +34,7 @@ public class SdScheduleService implements ScheduleService {
     @Transactional
     @Override
     public Long createSchedule(String title, ZonedDateTime startTimeKST, ZonedDateTime endTimeKST, List<Long> memberIds) {
-        List<SdMember> members = memberRepository.findAllByIds(memberIds);
+        List<SdMember> members = memberRepository.findAllById(memberIds);
         SdSchedule schedule = SdSchedule.newSchedule(title, startTimeKST, endTimeKST, members.toArray(new SdMember[0]));
         scheduleRepository.save(schedule);
         return schedule.getId();
@@ -46,7 +46,7 @@ public class SdScheduleService implements ScheduleService {
     @Transactional
     @Override
     public void updateSchedule(Long scheduleId, String title, ZonedDateTime startTimeKST, ZonedDateTime endTimeKST, List<Long> memberIds) {
-        List<SdMember> members = memberRepository.findAllByIds(memberIds);
+        List<SdMember> members = memberRepository.findAllById(memberIds);
         SdSchedule schedule = scheduleRepository.findWithAllById(scheduleId)
                 .orElseThrow(ResourceNotFoundException::new);
         schedule.update(title, startTimeKST, endTimeKST, members.toArray(new SdMember[0]));

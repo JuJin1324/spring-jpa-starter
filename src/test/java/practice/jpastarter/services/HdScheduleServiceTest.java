@@ -9,6 +9,7 @@ import practice.jpastarter.dtos.MemberDto;
 import practice.jpastarter.dtos.ScheduleDto;
 import practice.jpastarter.models.delete.hard.HdMember;
 import practice.jpastarter.repositories.delete.hard.HdMemberRepository;
+import practice.jpastarter.services.schedule.HdScheduleService;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -40,9 +41,9 @@ class HdScheduleServiceTest {
     @BeforeEach
     void setUp() {
         members = Arrays.asList(
-                new HdMember("기존 유저1", 10),
-                new HdMember("기존 유저2", 20),
-                new HdMember("신규 유저3", 30));
+                new HdMember("기존 유저1", 10, "01011110001"),
+                new HdMember("기존 유저2", 20, "01011110002"),
+                new HdMember("신규 유저3", 30, "01011110003"));
         memberRepository.saveAll(members);
     }
 

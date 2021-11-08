@@ -1,4 +1,4 @@
-package practice.jpastarter.services;
+package practice.jpastarter.services.schedule;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,8 +36,9 @@ public class HdScheduleService implements ScheduleService {
     @Override
     public Long createSchedule(String title, ZonedDateTime startTimeKST, ZonedDateTime endTimeKST, List<Long> memberIds) {
         List<HdMember> members = memberRepository.findAllById(memberIds);
-        HdSchedule schedule = HdSchedule.newSchedule(title, startTimeKST, endTimeKST, members.toArray(new HdMember[0]));
-        scheduleRepository.save(schedule);
+        HdSchedule schedule = scheduleRepository.save(
+                HdSchedule.newSchedule(title, startTimeKST, endTimeKST, members.toArray(new HdMember[0]))
+        );
         return schedule.getId();
     }
 

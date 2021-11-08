@@ -6,6 +6,7 @@ import practice.jpastarter.models.delete.soft.SdMember;
 import practice.jpastarter.repositories.delete.CommonRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Created by Yoo Ju Jin(jujin1324@daum.net)
@@ -13,7 +14,18 @@ import java.util.List;
  */
 public interface SdMemberRepository extends CommonRepository<SdMember, Long> {
     @Query("select m from SdMember m where m.id in (:ids) and m.delFlag = 'N'")
-    List<SdMember> findAllByIds(@Param("ids") List<Long> ids);
+    List<SdMember> findAllById(@Param("ids") List<Long> ids);
+
+    @Query("select m from SdMember m where m.delFlag = 'N'")
+    List<SdMember> findAll();
+
+    @Query("select m from SdMember m where m.id = :id and m.delFlag = 'N'")
+    Optional<SdMember> findOneById(@Param("id") Long id);
+
+    @Query("select m from SdMember m where m.phone = :phone")
+    Optional<SdMember> findOneByPhoneWithDeleted(@Param("phone") String phone);
 
     <S extends SdMember> List<S> saveAll(Iterable<S> entities);
+
+    <S extends SdMember> S save(S entity);
 }
