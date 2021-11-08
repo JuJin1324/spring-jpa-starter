@@ -15,6 +15,7 @@ public interface HdMemberRepository extends CommonRepository<HdMember, Long> {
 
     List<HdMember> findAll();
 
+    Optional<HdMember> findOneByPhone(String phone);
     Optional<HdMember> findOneById(Long id);
 
     <S extends HdMember> List<S> saveAll(Iterable<S> entities);

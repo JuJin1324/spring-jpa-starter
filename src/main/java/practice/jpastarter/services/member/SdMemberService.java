@@ -27,6 +27,7 @@ public class SdMemberService implements MemberService {
     public Long createMember(String name, Integer age, String phone) {
         return memberRepository.findOneByPhoneWithDeleted(phone)
                 .map(member -> {
+                    // 중복 검사
                     if (!member.isDeleted()) {
                         throw new ResourceDuplicateException();
                     }

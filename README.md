@@ -19,3 +19,55 @@
 > Repository 에 선언한 메서드들만 외부로 노출한다.
 >
 > Hard Delete 를 사용하는 경우에도 Repository 에 선언한 메서드만 외부로 노출하고 싶은 경우 CommonRepository 를 상속하여 사용한다.
+
+## Service
+### Create
+> Hard Delete 의 경우 생성자 + repository.save() 메서드로 간단하게 해결된다.  
+> 
+> Soft Delete 의 경우 생성할 때 받는 인수 중에서 PK 외에 식별이 될만한 인수를 받는 경우 
+> Repository 에서 where 절에 delFlag = 'N' 항목을 껴넣지 않고 해당 식별자 항목만 넣어서 select 를 돌린다.
+> 예를 들어 SdMember 의 경우 phone 을 통해서 회원 식별이 가능하여 Repository 에 findOneByPhoneWithDeleted() 메서드를 만들었다.
+> ```java
+> // SdMemberRepository.java
+> 
+> @Query("select m from SdMember m where m.phone = :phone")
+> Optional<SdMember> findOneByPhoneWithDeleted(@Param("phone") String phone);
+> ```
+> 해당 메서드를 통해서 SdMemberService 에서 map + orElseGet 을 통해서 중복 검사 및 save 를 진행한다.
+> ```java
+> // SdMemberService.java
+> 
+> @Override
+> public Long createMember(String name, Integer age, String phone) {
+>     return memberRepository.findOneByPhoneWithDeleted(phone)
+>             .map(member -> {
+>                 // 중복 검사
+>                 if (!member.isDeleted()) {
+>                     throw new ResourceDuplicateException();
+>                 }
+>                 member.unDelete();
+>                 member.update(name, age, phone);
+>                 return member.getId();
+>             })
+>             .orElseGet(() -> {
+>                 SdMember newMember = memberRepository.save(new SdMember(name, age, phone));
+>                 return newMember.getId();
+>             });
+> }
+> ```
+
+### Delete
+> Hard Delete 의 경우 repository.deleteById 를 통해서 간단하게 해결된다.
+> 
+> Soft Delete 의 경우 repository 를 호출하지 않고 DelFlag 항목을 'N' -> 'Y' 로 바꿔주는 delete() 메서드 호출로
+> 변경감지를 통한 update 문만 호출하도록 구현한다.
+> ```java
+> // SdMemberService.java
+>
+> @Override
+> public void deleteMember(Long memberId) {
+>   SdMember member = memberRepository.findOneById(memberId)
+>       .orElseThrow(ResourceNotFoundException::new);
+>   member.delete();
+> } 
+> ```

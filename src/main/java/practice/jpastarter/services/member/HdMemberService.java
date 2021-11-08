@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import practice.jpastarter.dtos.MemberDto;
+import practice.jpastarter.exceptions.ResourceDuplicateException;
 import practice.jpastarter.exceptions.ResourceNotFoundException;
 import practice.jpastarter.models.delete.hard.HdMember;
 import practice.jpastarter.repositories.delete.hard.HdMemberRepository;
@@ -25,6 +26,10 @@ public class HdMemberService implements MemberService {
     @Transactional
     @Override
     public Long createMember(String name, Integer age, String phone) {
+        // 중복 검사
+        if (memberRepository.findOneByPhone(phone).isPresent()) {
+            throw new ResourceDuplicateException();
+        }
         HdMember member = memberRepository.save(new HdMember(name, age, phone));
         return member.getId();
     }
