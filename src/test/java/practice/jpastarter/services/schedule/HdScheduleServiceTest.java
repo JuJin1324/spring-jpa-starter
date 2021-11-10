@@ -1,4 +1,4 @@
-package practice.jpastarter.services;
+package practice.jpastarter.services.schedule;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

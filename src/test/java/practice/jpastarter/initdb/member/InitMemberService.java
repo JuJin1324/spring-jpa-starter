@@ -1,11 +1,9 @@
-package practice.jpastarter.initdb.schedule;
+package practice.jpastarter.initdb.member;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import practice.jpastarter.initdb.member.InitMemberService;
 import practice.jpastarter.models.delete.hard.HdMember;
 import practice.jpastarter.models.delete.soft.SdMember;
 import practice.jpastarter.repositories.delete.hard.HdMemberRepository;
@@ -18,13 +16,13 @@ import java.util.UUID;
 
 /**
  * Created by Yoo Ju Jin(jujin1324@daum.net)
- * Created Date : 2021/11/08
+ * Created Date : 2021/11/10
  */
 
 @Profile("test")
 @Component
 @RequiredArgsConstructor
-public class InitScheduleService {
+public class InitMemberService {
     private final InitService initService;
 
     @PostConstruct
@@ -41,18 +39,16 @@ public class InitScheduleService {
         private final SdMemberRepository sdMemberRepository;
 
         public void initSdMember() {
-            List<SdMember> sdMembers = Arrays.asList(
-                    new SdMember(UUID.randomUUID().toString(), "기존 유저1", 10, "01011110001"),
-                    new SdMember(UUID.randomUUID().toString(), "기존 유저2", 20, "01011110002"),
-                    new SdMember(UUID.randomUUID().toString(), "신규 유저3", 30, "01011110003"));
+            SdMember duplicatedMember = new SdMember(UUID.randomUUID().toString(), "중복 유저", 10, "01022220001");
+            SdMember deletedMember = new SdMember(UUID.randomUUID().toString(), "삭제 유저", 20, "01022220002");
+            List<SdMember> sdMembers = Arrays.asList(duplicatedMember, deletedMember);
             sdMemberRepository.saveAll(sdMembers);
+            deletedMember.delete();
         }
 
         public void initHdMember() {
             List<HdMember> hdMembers = Arrays.asList(
-                    new HdMember(UUID.randomUUID().toString(), "기존 유저1", 10, "01011110001"),
-                    new HdMember(UUID.randomUUID().toString(), "기존 유저2", 20, "01011110002"),
-                    new HdMember(UUID.randomUUID().toString(), "신규 유저3", 30, "01011110003"));
+                    new HdMember(UUID.randomUUID().toString(), "중복 유저", 10, "01022220001"));
             hdMemberRepository.saveAll(hdMembers);
         }
     }
