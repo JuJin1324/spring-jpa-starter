@@ -33,9 +33,13 @@ public class SdScheduleService implements ScheduleService {
      */
     @Transactional
     @Override
-    public Long createSchedule(String title, ZonedDateTime startTimeKST, ZonedDateTime endTimeKST, List<Long> memberIds) {
-        List<SdMember> members = memberRepository.findAllById(memberIds);
-        SdSchedule schedule = SdSchedule.newSchedule(title, startTimeKST, endTimeKST, members.toArray(new SdMember[0]));
+    public Long createSchedule(ScheduleDto scheduleDto) {
+        List<SdMember> members = memberRepository.findAllById(scheduleDto.getMemberIds());
+        SdSchedule schedule = SdSchedule.newSchedule(
+                scheduleDto.getTitle(),
+                scheduleDto.getStartTimeKST(),
+                scheduleDto.getEndTimeKST(),
+                members.toArray(new SdMember[0]));
         scheduleRepository.save(schedule);
         return schedule.getId();
     }
@@ -45,17 +49,21 @@ public class SdScheduleService implements ScheduleService {
      */
     @Transactional
     @Override
-    public void updateSchedule(Long scheduleId, String title, ZonedDateTime startTimeKST, ZonedDateTime endTimeKST, List<Long> memberIds) {
-        List<SdMember> members = memberRepository.findAllById(memberIds);
+    public void updateSchedule(Long scheduleId, ScheduleDto scheduleDto) {
+        List<SdMember> members = memberRepository.findAllById(scheduleDto.getMemberIds());
         SdSchedule schedule = scheduleRepository.findWithAllById(scheduleId)
                 .orElseThrow(ResourceNotFoundException::new);
-        schedule.update(title, startTimeKST, endTimeKST, members.toArray(new SdMember[0]));
+        schedule.update(
+                scheduleDto.getTitle(),
+                scheduleDto.getStartTimeKST(),
+                scheduleDto.getEndTimeKST(),
+                members.toArray(new SdMember[0]));
     }
 
     @Override
     public ScheduleDto getSingleSchedule(Long scheduleId) {
         return scheduleRepository.findWithAllById(scheduleId)
-                .map(ScheduleDto::new)
+                .map(ScheduleDto::toRead)
                 .orElseThrow(ResourceNotFoundException::new);
     }
 

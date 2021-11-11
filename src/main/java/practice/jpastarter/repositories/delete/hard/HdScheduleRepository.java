@@ -20,4 +20,7 @@ public interface HdScheduleRepository extends CommonRepository<HdSchedule, Long>
     Optional<HdSchedule> findWithAllById(@Param("id") Long id);
 
     <S extends HdSchedule> S save(S entity);
+
+    /* for test purpose only below */
+    Optional<HdSchedule> findByTitle(@Param("title") String title);
 }

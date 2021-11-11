@@ -27,41 +27,45 @@ public class HdMemberService implements MemberService {
 
     @Transactional
     @Override
-    public Long createMember(String name, Integer age, String phone) {
+    public Long createMember(MemberDto memberDto) {
         // 중복 검사
-        if (memberRepository.findOneByPhone(phone).isPresent()) {
+        if (memberRepository.findOneByPhone(memberDto.getPhone()).isPresent()) {
             throw new ResourceDuplicateException();
         }
-        HdMember member = memberRepository.save(new HdMember(generateUUID(), name, age, phone));
+        HdMember member = memberRepository.save(
+                new HdMember(generateUUID(), memberDto.getName(), memberDto.getAge(), memberDto.getPhone())
+        );
         return member.getId();
     }
 
     @Override
     public MemberDto getSingleMember(Long memberId) {
         return memberRepository.findOneById(memberId)
-                .map(MemberDto::new)
+                .map(MemberDto::toRead)
                 .orElseThrow(ResourceNotFoundException::new);
     }
 
     @Override
     public List<MemberDto> getAllMembers() {
         return memberRepository.findAll().stream()
-                .map(MemberDto::new)
+                .map(MemberDto::toRead)
                 .collect(Collectors.toList());
     }
 
     @Transactional
     @Override
-    public void updateMember(Long memberId, String name, Integer age, String phone) {
+    public void updateMember(Long memberId, MemberDto memberDto) {
         HdMember member = memberRepository.findOneById(memberId)
                 .orElseThrow(ResourceNotFoundException::new);
-        member.update(name, age, phone);
+        member.update(member.getName(), memberDto.getAge(), memberDto.getPhone());
     }
 
     @Transactional
     @Override
     public void deleteMember(Long memberId) {
-        memberRepository.deleteById(memberId);
+        HdMember member = memberRepository.findOneById(memberId)
+                .orElseThrow(ResourceNotFoundException::new);
+        memberRepository.delete(member);
     }
 
     private String generateUUID() {

@@ -26,19 +26,21 @@ public class SdMemberService implements MemberService {
     private final SdMemberRepository memberRepository;
 
     @Override
-    public Long createMember(String name, Integer age, String phone) {
-        return memberRepository.findOneByPhoneWithDeleted(phone)
+    public Long createMember(MemberDto memberDto) {
+        return memberRepository.findOneByPhoneWithDeleted(memberDto.getPhone())
                 .map(member -> {
                     // 중복 검사
                     if (!member.isDeleted()) {
                         throw new ResourceDuplicateException();
                     }
                     member.unDelete();
-                    member.update(name, age, phone);
+                    member.update(memberDto.getName(), memberDto.getAge(), memberDto.getPhone());
                     return member.getId();
                 })
                 .orElseGet(() -> {
-                    SdMember newMember = memberRepository.save(new SdMember(generateUUID(), name, age, phone));
+                    SdMember newMember = memberRepository.save(
+                            new SdMember(generateUUID(), memberDto.getName(), memberDto.getAge(), memberDto.getPhone())
+                    );
                     return newMember.getId();
                 });
     }
@@ -46,22 +48,22 @@ public class SdMemberService implements MemberService {
     @Override
     public MemberDto getSingleMember(Long memberId) {
         return memberRepository.findOneById(memberId)
-                .map(MemberDto::new)
+                .map(MemberDto::toRead)
                 .orElseThrow(ResourceNotFoundException::new);
     }
 
     @Override
     public List<MemberDto> getAllMembers() {
         return memberRepository.findAll().stream()
-                .map(MemberDto::new)
+                .map(MemberDto::toRead)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public void updateMember(Long memberId, String name, Integer age, String phone) {
+    public void updateMember(Long memberId, MemberDto memberDto) {
         SdMember member = memberRepository.findOneById(memberId)
                 .orElseThrow(ResourceNotFoundException::new);
-        member.update(name, age, phone);
+        member.update(memberDto.getName(), memberDto.getAge(), memberDto.getPhone());
     }
 
     @Override

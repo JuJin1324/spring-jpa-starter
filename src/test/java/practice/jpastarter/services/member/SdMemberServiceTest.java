@@ -6,7 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+import practice.jpastarter.dtos.MemberDto;
 import practice.jpastarter.exceptions.ResourceDuplicateException;
+import practice.jpastarter.exceptions.ResourceNotFoundException;
 import practice.jpastarter.models.delete.soft.SdMember;
 import practice.jpastarter.repositories.delete.soft.SdMemberRepository;
 
@@ -19,8 +21,8 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 
 @ActiveProfiles("test")
-@SpringBootTest
 @Transactional
+@SpringBootTest
 class SdMemberServiceTest {
     public static final String NEW_MEMBER_NAME = "신규 유저1";
     public static final int    NEW_MEMBER_AGE  = 20;
@@ -34,8 +36,9 @@ class SdMemberServiceTest {
     void createMember_whenNewMember() {
         /* given */
         final String newMemberPhone = "01022220003";
+        MemberDto givenMemberDto = MemberDto.toCreate(NEW_MEMBER_NAME, NEW_MEMBER_AGE, newMemberPhone);
         /* when */
-        Long memberId = memberService.createMember(NEW_MEMBER_NAME, NEW_MEMBER_AGE, newMemberPhone);
+        Long memberId = memberService.createMember(givenMemberDto);
         /* then */
         assertThat(memberId).isGreaterThan(0L);
     }
@@ -45,10 +48,10 @@ class SdMemberServiceTest {
     void createMember_whenDuplicatedMember() {
         /* given */
         final String duplicatedMemberPhone = "01022220001";
+        MemberDto givenMemberDto = MemberDto.toCreate(NEW_MEMBER_NAME, NEW_MEMBER_AGE, duplicatedMemberPhone);
 
         /* when, then */
-        assertThrows(ResourceDuplicateException.class, () ->
-                memberService.createMember(NEW_MEMBER_NAME, NEW_MEMBER_AGE, duplicatedMemberPhone));
+        assertThrows(ResourceDuplicateException.class, () -> memberService.createMember(givenMemberDto));
     }
 
     @Test
@@ -56,12 +59,13 @@ class SdMemberServiceTest {
     void createMember_whenReviveDeleted() {
         /* given */
         final String deletedMemberPhone = "01022220002";
+        MemberDto givenMemberDto = MemberDto.toCreate(NEW_MEMBER_NAME, NEW_MEMBER_AGE, deletedMemberPhone);
         SdMember deletedMember = memberRepository.findOneByPhoneWithDeleted(deletedMemberPhone)
-                .orElse(null);
+                .orElseThrow(ResourceNotFoundException::new);
         assertThat(deletedMember.isDeleted()).isEqualTo(true);
 
         /* when */
-        Long memberId = memberService.createMember(NEW_MEMBER_NAME, NEW_MEMBER_AGE, deletedMemberPhone);
+        Long memberId = memberService.createMember(givenMemberDto);
         assertThat(memberId).isEqualTo(deletedMember.getId());
         assertThat(deletedMember.isDeleted()).isEqualTo(false);
     }

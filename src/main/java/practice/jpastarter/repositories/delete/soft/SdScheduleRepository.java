@@ -21,4 +21,10 @@ public interface SdScheduleRepository extends CommonRepository<SdSchedule, Long>
     Optional<SdSchedule> findWithAllById(@Param("id") Long id);
 
     <S extends SdSchedule> S save(S entity);
+
+    /* for test purpose only below */
+    @Query("select s from SdSchedule s " +
+            "where s.title = :title " +
+            "and s.delFlag = 'N'")
+    Optional<SdSchedule> findByTitle(@Param("title") String title);
 }

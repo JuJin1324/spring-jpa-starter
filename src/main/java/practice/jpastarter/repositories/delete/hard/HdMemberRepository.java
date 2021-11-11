@@ -24,5 +24,5 @@ public interface HdMemberRepository extends CommonRepository<HdMember, Long> {
 
     <S extends HdMember> S save(S entity);
 
-    void deleteById(Long aLong);
+    <S extends HdMember> void delete(S entity);
 }

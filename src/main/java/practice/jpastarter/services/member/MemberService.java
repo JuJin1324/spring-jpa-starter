@@ -12,7 +12,7 @@ public interface MemberService {
     /**
      * 회원 생성
      */
-    Long createMember(String name, Integer age, String phone);
+    Long createMember(MemberDto memberDto);
 
     /**
      * 회원 조회 - 단건
@@ -27,7 +27,7 @@ public interface MemberService {
     /**
      * 회원 갱신
      */
-    void updateMember(Long memberId, String name, Integer age, String phone);
+    void updateMember(Long memberId, MemberDto memberDto);
 
     /**
      * 회원 삭제

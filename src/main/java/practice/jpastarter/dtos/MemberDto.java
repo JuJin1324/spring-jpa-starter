@@ -1,7 +1,6 @@
 package practice.jpastarter.dtos;
 
-import lombok.Getter;
-import lombok.ToString;
+import lombok.*;
 import practice.jpastarter.models.delete.hard.HdMember;
 import practice.jpastarter.models.delete.soft.SdMember;
 
@@ -12,26 +11,50 @@ import practice.jpastarter.models.delete.soft.SdMember;
 
 @Getter
 @ToString
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class MemberDto {
-    private final Long   memberId;
-    private final String name;
-    private final int    age;
+    private Long   memberId;
+    private String name;
+    private String phone;
+    private int    age;
 
-    public MemberDto(Long memberId, String name, int age) {
+    @Builder
+    private MemberDto(Long memberId, String name, String phone, int age) {
         this.memberId = memberId;
         this.name = name;
+        this.phone = phone;
         this.age = age;
     }
 
-    public MemberDto(HdMember member) {
-        this.memberId = member.getId();
-        this.name = member.getName();
-        this.age = member.getAge();
+    public static MemberDto toCreate(String name, int age, String phone) {
+        return MemberDto.builder()
+                .name(name)
+                .age(age)
+                .phone(phone)
+                .build();
     }
 
-    public MemberDto(SdMember member) {
-        this.memberId = member.getId();
-        this.name = member.getName();
-        this.age = member.getAge();
+    public static MemberDto toRead(HdMember member) {
+        return MemberDto.builder()
+                .memberId(member.getId())
+                .name(member.getName())
+                .age(member.getAge())
+                .build();
+    }
+
+    public static MemberDto toRead(SdMember member) {
+        return MemberDto.builder()
+                .memberId(member.getId())
+                .name(member.getName())
+                .age(member.getAge())
+                .build();
+    }
+
+    public static MemberDto toUpdate(String name, int age, String phone) {
+        return MemberDto.builder()
+                .name(name)
+                .age(age)
+                .phone(phone)
+                .build();
     }
 }

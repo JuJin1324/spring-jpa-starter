@@ -11,7 +11,6 @@ import practice.jpastarter.repositories.delete.hard.HdMemberRepository;
 import practice.jpastarter.repositories.delete.hard.HdScheduleMemberRepository;
 import practice.jpastarter.repositories.delete.hard.HdScheduleRepository;
 
-import java.time.ZonedDateTime;
 import java.util.List;
 
 /**
@@ -34,10 +33,14 @@ public class HdScheduleService implements ScheduleService {
      */
     @Transactional
     @Override
-    public Long createSchedule(String title, ZonedDateTime startTimeKST, ZonedDateTime endTimeKST, List<Long> memberIds) {
-        List<HdMember> members = memberRepository.findAllById(memberIds);
+    public Long createSchedule(ScheduleDto scheduleDto) {
+        List<HdMember> members = memberRepository.findAllById(scheduleDto.getMemberIds());
         HdSchedule schedule = scheduleRepository.save(
-                HdSchedule.newSchedule(title, startTimeKST, endTimeKST, members.toArray(new HdMember[0]))
+                HdSchedule.newSchedule(
+                        scheduleDto.getTitle(),
+                        scheduleDto.getStartTimeKST(),
+                        scheduleDto.getEndTimeKST(),
+                        members.toArray(new HdMember[0]))
         );
         return schedule.getId();
     }
@@ -47,17 +50,22 @@ public class HdScheduleService implements ScheduleService {
      */
     @Transactional
     @Override
-    public void updateSchedule(Long scheduleId, String title, ZonedDateTime startTimeKST, ZonedDateTime endTimeKST, List<Long> memberIds) {
-        List<HdMember> members = memberRepository.findAllById(memberIds);
+    public void updateSchedule(Long scheduleId, ScheduleDto scheduleDto) {
+        List<HdMember> members = memberRepository.findAllById(scheduleDto.getMemberIds());
         HdSchedule schedule = scheduleRepository.findWithAllById(scheduleId)
                 .orElseThrow(ResourceNotFoundException::new);
-        schedule.update(title, startTimeKST, endTimeKST, members.toArray(new HdMember[0]));
+        schedule.update(
+                scheduleDto.getTitle(),
+                scheduleDto.getStartTimeKST(),
+                scheduleDto.getEndTimeKST(),
+                members.toArray(new HdMember[0])
+        );
     }
 
     @Override
     public ScheduleDto getSingleSchedule(Long scheduleId) {
         return scheduleRepository.findWithAllById(scheduleId)
-                .map(ScheduleDto::new)
+                .map(ScheduleDto::toRead)
                 .orElseThrow(ResourceNotFoundException::new);
     }
 

@@ -10,9 +10,9 @@ import java.util.List;
  * Created Date : 2021/11/06
  */
 public interface ScheduleService {
-    Long createSchedule(String title, ZonedDateTime startTimeKST, ZonedDateTime endTimeKST, List<Long> memberIds);
+    Long createSchedule(ScheduleDto scheduleDto);
 
-    void updateSchedule(Long scheduleId, String title, ZonedDateTime startTimeKST, ZonedDateTime endTimeKST, List<Long> memberIds);
+    void updateSchedule(Long scheduleId, ScheduleDto scheduleDto);
 
     ScheduleDto getSingleSchedule(Long scheduleId);
 
