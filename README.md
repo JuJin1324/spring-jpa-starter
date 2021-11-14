@@ -1,5 +1,9 @@
 # jpa-starter
 
+## Prepare
+### h2 database
+> dbname: practice-starter
+
 ## EqualsAndHashCode
 ### Entity
 > Entity 에 @EqualsAndHashcode 적용 시 기존 Hibernate 의 구현에 따라 @Id 를 비교하도록 되어있음.  
