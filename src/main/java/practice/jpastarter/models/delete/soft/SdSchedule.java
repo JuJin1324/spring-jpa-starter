@@ -81,7 +81,7 @@ public class SdSchedule extends SoftDeleteEntity {
     }
 
     public void addMember(SdMember member) {
-        Optional<SdScheduleMember> optional = _findScheduleMember(member.getId());
+        Optional<SdScheduleMember> optional = findScheduleMemberWithDeleted(member.getId());
         if (optional.isPresent()) {
             SdScheduleMember scheduleMember = optional.get();
             if (scheduleMember.isDeleted()) {
@@ -93,17 +93,10 @@ public class SdSchedule extends SoftDeleteEntity {
     }
 
     /* delFlag 와 상관없는 SdScheduleMember */
-    private Optional<SdScheduleMember> _findScheduleMember(Long memberId) {
-        return this.scheduleMembers.stream()
-                .filter(scheduleMember -> scheduleMember.getMemberId().equals(memberId))
-                .findAny();
-    }
-
     /* delFlag = 'N' 체크된 SdScheduleMember */
     public Optional<SdScheduleMember> findScheduleMember(Long memberId) {
-        return this.scheduleMembers.stream()
+        return this.findScheduleMemberWithDeleted(memberId)
                 .filter(scheduleMember -> !scheduleMember.isDeleted())
-                .filter(scheduleMember -> scheduleMember.getMemberId().equals(memberId))
                 .findAny();
     }
 
@@ -111,5 +104,11 @@ public class SdSchedule extends SoftDeleteEntity {
         return this.scheduleMembers.stream()
                 .filter(scheduleMember -> !scheduleMember.isDeleted())
                 .collect(Collectors.toList());
+    }
+
+    private Optional<SdScheduleMember> findScheduleMemberWithDeleted(Long memberId) {
+        return this.scheduleMembers.stream()
+                .filter(scheduleMember -> scheduleMember.getMemberId().equals(memberId))
+                .findAny();
     }
 }
