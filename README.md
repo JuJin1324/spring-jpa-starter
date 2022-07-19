@@ -4,6 +4,13 @@
 ### h2 database
 > dbname: practice-starter
 
+## application.yml
+### spring.jpa.properties.hibernate.enable_lazy_load_no_trans
+> 트랜잭션 범위가 끝나면 영속성 컨텍스트가 함께 종료되는 것이 JPA의 기본 전략이다.  
+> enable_lazy_load_no_trans 옵션은 OSIV와 비슷하기는 한데, 영속성 컨텍스트가 종료되어도, 새로운 데이터베이스 커넥션을 획득해서 지연로딩을 
+> 가능하게 해준다. 이 방법은 여러번 지연로딩이 있으면 그때마다 각각 새로운 데이터베이스 커넥션을 획득하기 때문에 성능상 매우 좋지 않다.
+> 해당 기능은 사용하지 않는다.
+
 ## EqualsAndHashCode
 ### Entity
 > Entity 에 @EqualsAndHashcode 적용 시 기존 Hibernate 의 구현에 따라 @Id 를 비교하도록 되어있음.  
