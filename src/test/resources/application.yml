@@ -1,0 +1,32 @@
+spring:
+    profiles:
+        active: test
+    datasource:
+        driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+        url: jdbc:tc:mysql:8.0.31://localhost/jpa_starter?TC_MY_CNF=mysql
+        username: test
+        password: test
+    jpa:
+        open-in-view: false
+        hibernate:
+            ddl-auto: create
+        properties:
+            hibernate:
+                format_sql: true
+                jdbc:
+                    time_zone: UTC
+                    batch_size: 1000
+        database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
+
+decorator:
+    datasource:
+        p6spy:
+            enable-logging: true
+
+logging:
+    level:
+        root: info
+        web: info
+        org.hibernate.SQL: debug
+        p6spy: info
+        com.zaxxer.hikari.pool.HikariPool: debug
