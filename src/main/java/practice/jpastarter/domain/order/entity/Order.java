@@ -1,6 +1,7 @@
 package practice.jpastarter.domain.order.entity;
 
 import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import practice.jpastarter.domain.entity.base.BaseTimeEntity;
@@ -10,10 +11,7 @@ import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Created by Yoo Ju Jin(jujin1324@daum.net)
@@ -23,6 +21,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "orders")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EqualsAndHashCode(of = {"uuid"}, callSuper = false)
 @Getter
 public class Order extends BaseTimeEntity {
     @Id

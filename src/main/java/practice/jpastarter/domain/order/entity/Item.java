@@ -1,6 +1,7 @@
 package practice.jpastarter.domain.order.entity;
 
 import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -15,6 +16,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "item")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EqualsAndHashCode(of = {"uuid"}, callSuper = false)
 @Getter
 public class Item {
     @Id

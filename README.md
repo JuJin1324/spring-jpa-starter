@@ -10,7 +10,7 @@
 ### Set
 > Java 의 Collection 중 Set 은 중복 항목을 허용하지 않는다. 이미 가지고 있는 항목을 Set 에 add 하면 그 항목은 add 되지 않는다.    
 > JPA Entity 의 Set 에서 동일 항목인지 비교는 동일성(PK 비교)가 아닌 동등성(EqualsAndHashCode) 로 비교한다.    
-> 동등성 비교를 위해서는 `@EqualsAndHashCode(of = {})` 에서 @Id 항목을 제외하고 동등해야하는 항목을 넣는다.  
+
 
 ---
 
@@ -37,16 +37,29 @@
 
 ---
 
-## EqualsAndHashCode
-### Entity
-> Entity 에 @EqualsAndHashcode 적용 시 기존 Hibernate 의 구현에 따라 @Id 를 비교하도록 되어있음.  
-> Schedule 에서 Member 정보를 받아 Schedule 의 종속 테이블인 ScheduleMember 에 추가 시 중복을 없애기 위해서  
-> Set + @EqualsAndHashcode 를 고려했었음.  
-> 하지만 추가 로직에서는 ScheduleMember 의 생성자 호출 방식으로 추가하기 때문에 @Id 가 없어서 중복 제거가 안됨.  
-> 즉 중복 제거를 위해서 Set + @EqualsAndHashcode 를 사용할 수 없음.  
+## EqualsAndHashCode - Entity
+> Entity 에 EqualsAndHashCode 구현시 다음의 3가지 방식이 존재한다.  
+> 1.PK 로만 equals() 구현하기  
+> 2.PK 를 제외하고 equals() 구현하기  
+> 3.비지니스 키를 사용한 동등성 구현하기  
 
-### 복합키
-> @Id 는 동일성 / 동등성 비교를 위해서 @EqualsAndHashcode 구현이 필요함.
+### 1.PK 로만 equals() 구현하기
+> 비교하려는 두 객체가 모두 영속성 컨텍스트에 존재해야한다. 영속 객체와 준영속 객체를 비교 시 항상 false 처리되기 때문에 
+> 영속 객체를 담은 Set 객체에 준영속 객체를 추가해야하는 상황에서는 적합하지 않다.
+
+### 2.PK 를 제외하고 equals() 구현하기
+> 엔티티에서 PK 를 제외한 property 들만 equals() 메서드 구현 시 만약 참조 객체(join 하는 객체)가 있다면 해당 객체는 제외해서 구현해야한다.   
+> 준영속 객체와 비교하려는 영속 객체의 property 일부가 변경된 경우가 존재하여 비지니스 적으로는 같아야하는 객체인데 시점에 의해서 다른 객체로 인식할 수 있는 상황이 발생할 수 있음.    
+
+### 3.비지니스 키를 사용한 동등성 구현하기
+> 영속 객체를 Set 객체에 준영속 객체를 추가해야하는 상황에서 가장 적합해보임.  
+> PK 를 제외하고 엔티티에서 가장 변경이 적으며 대체 식별자로 사용 가능한 Property 만 equals 메서드로 비교.  
+> 대체 식별자로 사용이 가능하려면 1.UNIQUE 제약 조건을 가져야하며, 2.변경 횟수가 다소 적은 편에 속하여야한다.   
+> 위의 PK 를 제외하고 equals() 구현에서 맹점이 되었던 영속 객체의 property 일부가 변경된 경우에도 동일 객체로 인식할 수 있음.  
+
+### 참조사이트
+> [JPA Entity의 equals와 hashCode](https://velog.io/@park2348190/JPA-Entity%EC%9D%98-equals%EC%99%80-hashCode)
+> [Jpa Entity 의 Equals, 객체 동일성과 동등성, Lombok 을 써도 될까?](https://blog.yevgnenll.me/posts/jpa-entity-eqauls-and-hashcode-equality)
 
 ---
 

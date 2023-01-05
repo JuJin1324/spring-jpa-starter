@@ -37,7 +37,6 @@ public class DefaultOrderService implements OrderService {
         User user = userRepository.findByUuid(userId)
                 .orElseThrow(RuntimeException::new);
 
-//        Set<Item> items = itemRepository.findByUuidIn(createDto.getItemIds());
         List<Item> items = itemRepository.findByUuidIn(createDto.getItemIds());
         Order order = orderRepository.save(new Order(user, items));
 
