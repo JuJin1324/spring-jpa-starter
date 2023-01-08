@@ -6,14 +6,18 @@
 
 ---
 
-## fetch join
-### Collection fetch
+## JPQL
+### Collection fetch join  
 > JPQL 을 통한 조회 시 둘 이상의 컬렉션을 fetch 할 수 없다.  
 > 둘 이상의 컬렉션을 fetch join 한 JPQL 을 실행하면 다음의 예외가 발생한다: 
 > `PersistenceException: org.hibernate.loader.MultipleBagFetchExcetpino: cannot simultaneously fetch multiple bags`  
 > 
 > 컬렉션을 fetch join 시 (OneToMany 객체 참조) 페이징 API 를 사용할 수 없다.  
 > JPA 구현체로 Hibernate 를 사용하는 경우 경고 로그를 남기면서 메모리에서 페이징 처리가 되지만, 데이터가 많을 시 성능 이슈 및 메모리 초과 예외가 발생할 수 있다.  
+
+### Collection size
+> select 절에서 OneToMany 객체의 size 기능을 통해서 count 함수를 호출한 것과 동일한 기능을 수행할 수 있다.  
+> ex) `select t.members.size from Team t`
 
 ---
 
