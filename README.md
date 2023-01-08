@@ -6,6 +6,21 @@
 
 ---
 
+## 오류 대처
+### antlr.SemanticException: with-clause not allowed on fetched associations; use filters
+> 발생 원인: JPQL 에서 fetch join 사용 시에 on 조건을 걸면 발생하는 오류
+> 
+> 원인 내용: 예를 들어서 Member 엔티티와 Team 엔티티가 있다고 가정한다.  
+> 발생 원인이 된 쿼리는 다음과 같다고 가정한다: `select m from Member m inner join fetch m.team t on t.name = :teamName`  
+> fetch join 의 경우에는 Member 엔티티와 Team 모두 영속성 컨텍스트에 등록되기 때문에 join 필터인 on 조건을 걸게 되면 실제 데이터베이스에 저장된 
+> Member 테이블과 영속성 컨텍스트에 존재하는 Member 엔티티와 불일치가 일어나게 된다.    
+> 왜냐면 데이터베이스의 Member 테이블 TeamId 칼럼 값이 존재하는데 fetch join + on 조건으로 인해서 영속성 컨텍스트로 가져온 Member 엔티티의 멤버 변수인 Team 엔티티가
+> null 로 가져오게 되면 차이가 발생되기 때문이다.  
+> 
+> 대처: fetch join + on 조건은 사용하지 않는다.
+
+---
+
 ## Entity 지연 로딩
 ### 지연 로딩 예제
 > Member 객체와 Team 객체가 연관 관계를 가지고 있고 Member 다 대 Team 일의 연관관계인 다대일 연관관계를 가진다.  
