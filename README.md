@@ -19,6 +19,15 @@
 > select 절에서 OneToMany 객체의 size 기능을 통해서 count 함수를 호출한 것과 동일한 기능을 수행할 수 있다.  
 > ex) `select t.members.size from Team t`
 
+### Collection is empty
+> where 절에서 컬렉션(OneToMany) 객체가 empty 인지 아닌지 조건을 줄 수 있다.  
+> ex1) `select m from Member m where m.orders is not empty` -> SQL 에서는 exists 사용   
+> ex2) `select m from Member m where m.orders is empty` -> SQL 에서는 not exists 사용  
+> 컬렉션 객체에 `is null` 은 사용할 수 없다.
+
+### is null
+> JPQL 사용 시 `is null` 혹은 `is not null` 을 사용해야하며 그 외에 null = null 혹은 m.age = null 과 같이 사용하지 않아야한다.   
+
 ---
 
 ## 오류 대처
