@@ -6,6 +6,16 @@
 
 ---
 
+## Transaction
+### @Transactional
+> @Transactional 은 RuntimeException 과 그 자식인 `언체크(Unchecked)` 예외만 롤백한다.  
+> 만약 체크 예외가 발생해도 롤백하고 싶다면 @Transactional(rollbackFor = Exception.class) 처럼 롤백할 예외를 지정해야 한다.  
+
+### JUnit 에서 사용
+> JUnit 테스트 클래스에 @Transactional 애노테이션을 붙인 경우 각 테스트 메서드가 실행 후 테스트가 끝나면 트랜잭션을 강제로 롤백한다.   
+
+---
+
 ## JPQL
 ### Collection fetch join  
 > JPQL 을 통한 조회 시 둘 이상의 컬렉션을 fetch 할 수 없다.  
