@@ -6,6 +6,47 @@
 
 ---
 
+## Spring Data JPA
+### 설명
+> Spring 에서 JPA 를 사용 시 Spring Data JPA 를 통해서 사용.
+
+### Dependency
+> SpringBoot 기준 Spring Data JPA 디펜던시 추가 설정
+> ```groovy
+> ...
+> dependencies {
+>     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+>     ...
+> }
+> ```
+
+### JpaRepository
+> Spring Data JPA 를 사용하면 기존에 DAO 클래스를 사용하지 않고 리포지토리 인터페이스를 생성 후 
+> Spring Data JPA 에서 제공하는 JpaRepository 인터페이스를 상속하는 방식으로 데이터베이스에 접근하도록 한다.
+> 
+> JpaRepository 를 상속하게 되면 JpaRepository 에 선언된 메서드들을 Override 하여 구현하지 않아도 모두 사용 가능해진다.  
+> 
+> JpaRepository 는 제네릭 인터페이스로 첫번째 인자는 해당 리포지토리가 접근하는 엔티티 클래스, 두번째 인자는 해당 엔티티의 PK 자료형을 입력한다.  
+> 예시: Order 엔티티의 데이터베이스 접근을 위한 Repository 인터페이스 생성
+> ```java
+> public interface OrderRepository extends JpaRepository<Order, Long> {
+> }
+> ```
+
+### CommonRepository
+> JpaRepository 를 상속받은 경우 해당 Repository 는 JpaRepository 에 선언된 모든 메서드를 외부에 제공하게 된다.  
+> 하지만 JpaRepository 에 선언된 모든 메서드가 아닌 Repository 에 선언된 메서드만 외부에 제공하고 싶어지는 경우가 있다.  
+> 그런 경우 JpaRepository 를 상속받지 말고 CommonRepository 인터페이스를 직접 생성 후 Repository 에 해당 인터페이스를 상속받는 형태로 만든다.  
+> 
+> CommonRepository.java
+> ```java
+> @NoRepositoryBean
+> public interface CommonRepository<T, ID extends Serializable> extends Repository<T, ID> {
+> }
+> ```
+
+---
+
 ## Transaction
 ### @Transactional
 > @Transactional 은 RuntimeException 과 그 자식인 `언체크(Unchecked)` 예외만 롤백한다.  
