@@ -45,6 +45,47 @@
 > }
 > ```
 
+### 벌크성 쿼리 주의 사항
+> JpaRepository 를 상속받는 리포지토리에서 벌크성 데이터 수정/삭제를 위한 쿼리에는 `@Modifying` 애노테이션을 붙이며,
+> 해당 애노테이션의 옵션에는 `clearAutomatically = true/false, flush` 및 `flushAutomatically = true/false` 가 있다.  
+> 벌크성 쿼리는 JPA Entity LifeCycle 을 무시하고 쿼리가 실행되기 때문 해당 쿼리를 사용할 때는 영속성 컨텍스트 관리에 주의해야 한다.  
+
+### @Modifying - clearAutomatically 
+> 이 Attribute는 @Modifying 이 붙은 해당 쿼리 메서드 실행 직 후, 역속성 컨텍스트를 clear 할 것인지를 지정하는 Attribute 이다. default 값은 false.  
+> 
+> `clearAutomatically=false` 는 해당 벌크 쿼리가 실행된 후 영속성 컨테스트를 그대로 둔다.  
+> 벌크 쿼리는 영속성 컨텍스트를 거치지 않고 데이터베이스에 쿼리를 실행하는 형태이기 때문에 벌크 쿼리를 통해서 영속성 컨텍스트가 수정되는 일은 없다.  
+> 예를 들어서 Order 엔티티를 조회한 후에 Order 엔티티를 벌크 쿼리를 통해서 status 를 수정을 한 이후 Order 엔티티의 status 를 다시 살펴보자.
+> Order 엔티티는 영속성 컨텍스트의 값을 바라보고 있기 때문에 벌크 쿼리를 통해서 업데이트된 status 수정이 반영되지 않는다.
+> 
+> `clearAutomatically=true` 는 해당 벌크 쿼리가 실행된 후 영속성 컨텍스트를 지워버린다.
+> 만약 트랜잭션에서 해당 벌크 쿼리 이후에 벌크 쿼리와 관련된 엔티티와 관련된 연산이 존재하는 경우 해당 엔티티는 다시 조회가 발생하여 변경된 상태가 반영된다.
+> 예를 들어서 Order 엔티티를 조회한 후에 Order 엔티티를 벌크 쿼리를 통해서 status 를 수정을 한 이후 Order 엔티티의 status 를 다시 살펴보자.
+> Order 엔티티는 영속성 컨텍스트의 값을 바라보고 있는데 연속성 컨텍스트가 지워져버려 DB에서 재조회를 통해서 영속성 컨텍스트의 값을 갱신한다.   
+> 그래서 벌크 쿼리를 통해서 업데이트된 status 수정이 반영된 상태이다.   
+> 
+> 주의할 점은 영속성 컨텍스트 자체를 전부 지워버리는 것이기 때문에 Order 엔티티 벌크 연산 이후 다른 엔티티와 관련된 연산이 존재할 경우에 다른 엔티티까지
+> 재조회하도록 동작한다.
+
+### @Modifying - flushAutomatically
+> 이 Attribute는 @Query와 @Modifying을 통한 쿼리 메서드를 사용할 때, 해당 쿼리를 실행하기 전, 
+> 영속성 컨텍스트의 변경 사항을 DB에 flush 할 것인지를 결정하는 Attribute 이다. Default 값은 clearAutomatically 와 마찬가지로 false.
+>
+> 예를 들어서 Order 엔티티를 조회한 후에 Order 엔티티를 벌크 쿼리를 통해서 status 를 수정을 한 이후 Order 엔티티의 status 를 다시 살펴보자.  
+> 가정 1.Order 엔티티 벌크 쿼리를 수행 전에 Order 의 orderDate 를 변경함.  
+> 가정 2.Order 엔티티 벌크 쿼리는 clearAutomatically=true, flushAutomatically=false 로 설정함.  
+> Order 엔티티의 벌크 쿼리가 실행 이후 영속성 컨텍스트를 지워버리게 되면 벌크 쿼리를 실행하기 전에 수행했던 orderDate 의 변경분이 영속성 컨텍스트가 
+> 지워짐으로써 같이 날라가게된다. 즉 벌크 연산 이전의 연산이 DB 에 반영되지 않고 날아가버릴 수 있게된다.  
+> 
+> 하지만 JPA 의 구현체인 Hibernate 의 FlushModeType 이 AUTO 로 설정된 경우 flushAutomatically 의 설정과 관계없이 무조건 벌크 연산 실행 전에
+> 영속성 컨텍스트를 flush 하여 변경분이 DB 에 반영되도록 해준다.   
+> 일반적으로 Hibernate 의 FlushModeType 를 AUTO 외에 COMMIT 으로는 잘 사용하지 않기 때문에 사실상 flushAutomatically 는 설정해주지 않아도 큰 문제는 없다.  
+> 하지만 Hibernate 의 정책이 변경될 수 있기 때문에 명시적으로 설정해주고 싶으면 하도록한다.
+
+### 참조사이트
+> [Spring Data JPA @Modifying (1) - clearAutomatically](https://devhyogeon.tistory.com/4)  
+> [Spring Data JPA @Modifying (2) - flushAutomatically](https://devhyogeon.tistory.com/5)
+
 ---
 
 ## Transaction
