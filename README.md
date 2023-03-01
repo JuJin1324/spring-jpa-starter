@@ -6,6 +6,20 @@
 
 ---
 
+## 영속성 컨텍스트(Persistent context)
+### flush
+> flush 는 영속성 컨텍스트의 내용을 데이터베이스에 반영하기 위해서 SQL 쿼리를 날리는 작업이다.(commit 제외)  
+
+### 생명 주기
+> 영속성 컨텍스트의 생명 주기는 기본적으로 트랜잭션의 시작시 생성되며 커밋 혹은 롤백 시 삭제된다.  
+> 
+> OSIV 설정을 통해서 영속성 컨텍스트의 생명 주기를 Filter/Interceptor 를 시작으로 Controller -> Service -> Repository 를 거쳐서 다시 
+> Filter/Interceptor 로 돌아오고나서 영속성 컨텐스트를 삭제하는 것도 가능하다.  
+> 하지만 OSIV 는 스프링에서 뷰를 제공할 때 고려해볼 수 있는 옵션이며 REST API 와 같이 API 를 제공할 시에는 DTO 객체와 같이 버전별 제공 데이터 관리와 같이
+> 완충지대를 제공하는 것이 나아보인다.
+
+---
+
 ## Spring Data JPA
 ### 설명
 > Spring 에서 JPA 를 사용 시 Spring Data JPA 를 통해서 사용.
