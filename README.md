@@ -6,6 +6,48 @@
 
 ---
 
+## EntityListener
+### 개요
+> EntityListener: @PrePersist, @PreUpdate 와 같은 애노테이션을 붙인 메서드.  
+> 리스너 메서드를 구현한 클래스를 자식 클래스에 상속했을 때 자식 클래스에서도 정상 동작한다.  
+> 상위 클래스의 리스너 메서드의 동작을 자식 클래스에서 막기 위해서는 자식 클래스에서 클래스 위에 `@ExcludeSuperclassListeners` 애노테이션을 선언한다.  
+
+### 종류
+> 1.@PostLoad: 엔티티가 영속성 컨텍스트에 조회된 직후 호출  
+> 2.@PrePersist: 엔티티가 영속성 컨텍스트에 관리하기 직전에 호출.  
+> 3.@PreUpdate: flush 나 commit 을 호출해서 엔티티를 데이터베이스에 수정하기 직전에 호출.  
+> 4.@PreRemove: remove() 메서드를 호출해서 엔티티를 영속성 컨텍스트에서 삭제하기 직전에 호출.  
+> 5.@PostPersist: flush 나 commit 을 호출해서 엔티티를 데이터베이스에 저장한 직후에 호출.  
+> 6.PostUpdate: flush 나 commit 을 호출해서 엔티티를 데이터베이스에 수정한 직후에 호출.  
+> 7.PostRemove: flush 나 commit 을 호출해서 엔티티를 데이터베이스에 삭제한 직후에 호출.  
+
+### 리스너 등록
+> 리스너 메서드들만 구현해서 Listener 클래스를 만들어서 엔티티에 해당 리스너를 사용하도록 할 수도 있다.  
+> 예를 들면 엔티티의 생명주기에 따른 로깅 또는 생성 시 CreatedDate 에 값 넣기, 업데이트 시 UpdateDate 에 값 넣는 방식으로도 활용할 수 있다.  
+> ```java
+> @Entity
+> @EntityListeners(TimeListener.class)
+> public class Member {
+>   ...
+> }
+> 
+> public class TimeListener {
+>   
+>     @PrePersist
+>     private void prePersist() {
+>         ...
+>     }
+> 
+>     // 특정 타입이 확실하면 특정 타입을 받을 수 있다.
+>     @PreUpdate
+>     private void preUpdate(Object obj) {
+>         ...
+>     } 
+> }
+> ```
+
+---
+
 ## Converter
 ### Global 설정
 > Converter 클래스에 `@Converter(autoApply = true)` 를 선언하면 따로 @Convert 애노테이션을 지정하지 않아도 모두 적용된다.  
