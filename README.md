@@ -362,3 +362,25 @@
 > JpaRepository 의 경우 기본적인 CRUD 관련 메서드가 제공되며, JpaRepository 를 상속받는 Repository 인터페이스는 앞의 이유로 기본적인 CRUD 관련 메서드가 
 > 개발자의 뜻과 상관없이 모두 노출(제공)된다.  
 > Repository 에 선언한 메서드만 외부로 노출하고 싶은 경우 CommonRepository 를 상속하여 사용한다.  
+
+---
+
+## 엔티티 그래프
+### JPQL -> EntityGraph
+> 기존에 엔티티 뿐만 아니라 해당 엔티티에 연관된 엔티티까지 함께 조회하고 싶은 경우에 JPQL 의 `join fetch` 를 사용하여 함께 조회하였다.    
+> 만약 엔티티의 ID 를 통해서 조회하며 연관된 엔티티가 적을 경우에는 엔티티 그래프를 이용해서 조회하는 것도 코드를 줄이는데 도움이 된다.
+>
+> 예를 들어 User 를 ID 로 조회하는데 User 에 연관된 엔티티인 addresses 엔티티도 함께 조회를 한다고 가정해보자.
+> ```java
+> ...
+> 
+> @EntityGraph(attributePaths = {"addresses"}, type = EntityGraph.EntityGraphType.LOAD)
+> Optional<User> findWithAddressesById(Long userId);
+> ```
+>
+> EntityGraph.EntityGraphType 에는 `LOAD` 와 `FETCH` 가 있다.  
+> FETCH: entity graph에 명시한 attribute는 EAGER로 패치하고, 나머지 attribute는 LAZY로 패치  
+> LOAD: entity graph에 명시한 attribute는 EAGER로 패치하고, 나머지 attribute는 entity에 명시한 fetch type이나 디폴트 FetchType으로 패치
+
+### 주의
+> EntityGraph 로 함께 조회하는 엔티티는 모두 `outer join` 이어서 `inner join` 위주로 조회시에는 JPQL 을 사용하여야한다.
