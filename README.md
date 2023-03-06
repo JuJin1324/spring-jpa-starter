@@ -6,6 +6,20 @@
 
 ---
 
+## Converter
+### Global 설정
+> Converter 클래스에 `@Converter(autoApply = true)` 를 선언하면 따로 @Convert 애노테이션을 지정하지 않아도 모두 적용된다.  
+> 예시) 엔티티의 Boolean 타입을 데이터베이스에 'Y' 또는 'N' 으로 저장하기 위한 Converter 클래스를 정의하고 클래스 위에 `@Converter(autoApply = true)` 를
+> 선언하면 엔티티의 Boolean 타입 위에 @Convert 애노테이션을 선언하지 않아도 Boolean 타입을 자동으로 'Y', 'N' 으로 저장해준다.
+> ```java
+> @Converter(autoApply = true)
+> public class BooleanToYNConverter implements AttributeConverter<Boolean, String> {
+> ...
+> }
+> ```
+
+---
+
 ## Collection
 ### PersistentBag
 > 하이버네이트가 컬렉션을 효율적으로 관리하기 위해 엔티티를 영속 상태로 만들 때 원본 컬렉션을 감싸고 있는 내장 컬렉션을 생성하여 이 내장 컬렉션을 사용하도록 참조를 변경한다.
@@ -249,13 +263,6 @@
 > 
 > 지연 쓰기를 사용하기 위해서는 Entity 식별자(PK)를 UUID 를 사용하여 Auto increment 가 아닌 애플리케이션 내에서 UUID 를 생성하여 식별자를 직접 지정하여 사용하거나,
 > Oracle 과 같은 시퀀스를 사용하는 DB 의 경우에는 시퀀스를 사용한다.(하지만 save 를 통해서 영속성 컨텍스트에 엔티티를 저장하기 위해서는 시퀀스 넘버를 얻어오는 쿼리가 실행된다.)  
-
----
-
-## Set vs List
-### Set
-> Java 의 Collection 중 Set 은 중복 항목을 허용하지 않는다. 이미 가지고 있는 항목을 Set 에 add 하면 그 항목은 add 되지 않는다.    
-> JPA Entity 의 Set 에서 동일 항목인지 비교는 동일성(PK 비교)가 아닌 동등성(EqualsAndHashCode) 로 비교한다.    
 
 ---
 
