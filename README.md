@@ -6,6 +6,53 @@
 
 ---
 
+## Collection
+### PersistentBag
+> 하이버네이트가 컬렉션을 효율적으로 관리하기 위해 엔티티를 영속 상태로 만들 때 원본 컬렉션을 감싸고 있는 내장 컬렉션을 생성하여 이 내장 컬렉션을 사용하도록 참조를 변경한다.
+> 하이버네이트는 이런 특징 때문에 컬렉션을 사용할 때 다음처럼 즉시 초기화해서 사용하는 것을 권장한다.
+> ```java
+> ...
+> @OneToMany
+> private final List<Member> members = new ArrayList();
+> ... 
+> ```
+> 하이버네이트에서 Set 의 경우 PersistentSet 을 래퍼클래스로 사용한다.
+
+### Collection, List
+> Collection, List 의 경우 중복을 허용해서 저장하기 때문에 .add 메서드 내부에서 어떤 비교도 하지 않고 항상 true 를 반환한다.  
+> 같은 엔티티가 있는지 찾거나 삭제할 때는 equals() 메서드를 사용한다.
+> ```java
+> List<Comment> comments = new ArrayList<>();
+> 
+> // 단순히 추가만 한다. 결과는 항상 true 이다.
+> boolean result = comments.add(data);
+> 
+> comments.contains(comment); // equals 비교
+> comments.remove(comment); // equals 비교
+> ```
+
+### Set
+> Set 은 중복을 허용하지 않는 컬렉션이다. 하이버네이트는 PersistentSet 을 컬렉션 래퍼로 사용한다. 초기화는 HashSet 으로 한다.
+> ```java
+> ...
+> @OneToMany
+> private final Set<Member> members = new HashSet<>();
+> ... 
+> ```
+> HashSet 은 중뵥을 허용하지 않으므로 add() 메서드로 객체를 추가할 때 마다 equals() 메서드로 같은 객체가 있는지 비교한다.
+> 같은 객체가 없으면 객체를 추가하고 true 를 반환하고, 같은 객체가 이미 있어서 추가에 실패하면 false 를 반환한다.
+> 참고로 HashSet 은 해시 알고리즘을 사용하므로 hashcode() 도 함께 사용해서 비교한다.
+> ```java
+> Set<Comment> comments = new HashSet<>();
+> 
+> boolean result = comments.add(data); // hashcode + equals 비교
+> comments.contains(comment);   // hashcode + equals() 비교
+> comments.remove(comment);     // hashcode + equals() 비교
+> ```
+> 주의!: Set 은 엔티티를 add(추가)할 때마다 중복된 엔티티가 있는지 비교해야 한다. 따라서 엔티티를 추가할 때 지연 로딩된 컬렉션을 초기화한다.
+
+---
+
 ## 영속성 컨텍스트(Persistent context)
 ### flush
 > flush 는 영속성 컨텍스트의 내용을 데이터베이스에 반영하기 위해서 SQL 쿼리를 날리는 작업이다.(commit 제외)  
