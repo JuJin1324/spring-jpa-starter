@@ -6,6 +6,28 @@
 
 ---
 
+## 스프링 프레임워크의 JPA 예외 변환
+### PersistenceExceptionTranslationPostProcessor
+> JPA 예외를 스프링 변환 예외로 변경시켜서 발생시키기 위해서는 `PersistenceExceptionTranslationPostProcessor` 를 스프링 Bean 으로 등록해야한다.  
+> ```java
+> @Bean
+> public PersistenceExceptionTranslationPostProcessor exceptionTranslation() {
+>     return new PersistenceExceptionTranslationPostProcessor();
+> }
+> ```
+> @Repository 애노테이션을 붙인 클래스와 JpaRepository 를 상속받은 인터페이스의 메서드에서 예외 발생 시 스프링 변환 예외가 발생한다.  
+
+### SpringBoot 2.0 + Spring Data JPA
+> SpringBoot 2.0 이상의 버전과 Spring Data JPA 를 사용하면 JPA 예외를 스프링 변환 예외로 변경시키기 위해서 위의 `PersistenceExceptionTranslationPostProcessor` 를
+> 스프링 빈으로 등록할 필요없이 자동으로 등록되며, @Repository 애노테이션을 붙인 클래스, JpaRepository 를 상속받은 인터페이스 및 Repository 를 상속받은 인터페이스(CommonRepository)까지 
+> 모두 스프링 변환 예외가 적용된다.
+
+### 메서드 옆에 throws 붙이기
+> 메서드 옆에 throws 로 JPA 예외를 던지도록 명시하면 스프링 예외로 변환하지 않고 throws 선언한 예외로 예외를 발생시킨다.    
+> 주의점은 메서드 옆에 throws Exception 을 선언하게되는 경우인데 `java.lang.Exception` 을 throws 선언하면 스프링 예외로 변환하지 않고 발생시킨다.   
+
+---
+
 ## EntityListener
 ### 개요
 > EntityListener: @PrePersist, @PreUpdate 와 같은 애노테이션을 붙인 메서드.  
@@ -212,6 +234,8 @@
 
 ### JUnit 에서 사용
 > JUnit 테스트 클래스에 @Transactional 애노테이션을 붙인 경우 각 테스트 메서드가 실행 후 테스트가 끝나면 트랜잭션을 강제로 롤백한다.   
+> 강제로 롤백 시키기 때문에 영속성 컨텍스트를 flush 하지 않는다. 플러시를 하지 않으므로 플러시 시점에 어떤 SQL 이 실행되는지 콘솔 로그에 남지 않는다. 
+> 어떤 SQL 이 실행되는지 콘솔을 통해 보고 싶으면 테스트 마지막에 em.flush() 를 강제로 호출하면 된다.
 
 ---
 
@@ -332,10 +356,14 @@
 ---
 
 ## EqualsAndHashCode - Entity
+### Object.equals
+> Object 객체의 equals 메서드는 기본적으로 동일 객체 즉 객체주소가 같아야 true 를 반환한다.  
+
+### Entity 에 EqualsAndHashCode 구현
 > Entity 에 EqualsAndHashCode 구현시 다음의 3가지 방식이 존재한다.  
 > 1.PK 로만 equals() 구현하기  
 > 2.PK 를 제외하고 equals() 구현하기  
-> 3.비지니스 키를 사용한 동등성 구현하기  
+> 3.비즈니스 키를 사용한 동등성 구현하기  
 
 ### 1.PK 로만 equals() 구현하기
 > 비교하려는 두 객체가 모두 영속성 컨텍스트에 존재해야한다. 영속 객체와 준영속 객체를 비교 시 항상 false 처리되기 때문에 
@@ -343,13 +371,16 @@
 
 ### 2.PK 를 제외하고 equals() 구현하기
 > 엔티티에서 PK 를 제외한 property 들만 equals() 메서드 구현 시 만약 참조 객체(join 하는 객체)가 있다면 해당 객체는 제외해서 구현해야한다.   
-> 준영속 객체와 비교하려는 영속 객체의 property 일부가 변경된 경우가 존재하여 비지니스 적으로는 같아야하는 객체인데 시점에 의해서 다른 객체로 인식할 수 있는 상황이 발생할 수 있음.    
+> 준영속 객체와 비교하려는 영속 객체의 property 일부가 변경된 경우가 존재하여 비즈니스 적으로는 같아야하는 객체인데 시점에 의해서 다른 객체로 인식할 수 있는 상황이 발생할 수 있음.    
 
-### 3.비지니스 키를 사용한 동등성 구현하기
+### 3.비즈니스 키를 사용한 동등성 구현하기
 > 영속 객체를 Set 객체에 준영속 객체를 추가해야하는 상황에서 가장 적합해보임.  
 > PK 를 제외하고 엔티티에서 가장 변경이 적으며 대체 식별자로 사용 가능한 Property 만 equals 메서드로 비교.  
 > 대체 식별자로 사용이 가능하려면 1.UNIQUE 제약 조건을 가져야하며, 2.변경 횟수가 다소 적은 편에 속하여야한다.   
 > 위의 PK 를 제외하고 equals() 구현에서 맹점이 되었던 영속 객체의 property 일부가 변경된 경우에도 동일 객체로 인식할 수 있음.  
+> 
+> 비즈니스 키는 유일성만 보장되면 가끔 있는 변경 정도는 허용해도 좋다. 따라서 데이터베이스 기본 키 같이 너무 딱딱하게 정하지 않아도 된다.
+> 예를 들어 회원 엔티티에 이름과 연락처가 같은 회원이 없다면 회원의 이름과 연락처 정도만 조합해서 사용해도 된다.
 
 ### 참조사이트
 > [JPA Entity의 equals와 hashCode](https://velog.io/@park2348190/JPA-Entity%EC%9D%98-equals%EC%99%80-hashCode)
