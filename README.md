@@ -6,6 +6,38 @@
 
 ---
 
+## N+1 성능 최적화
+### N+1: Paging 혹은 List 조회 시 발생할 수 있는 문제
+> JPQL 에서 객체를 조회 후 조회한 객체의 연관 관계를 가진 객체를 사용할 때 영속성 컨텍스트에 해당 객체가 없기 때문에 추가로 조회 SQL 쿼리가 데이터베이스로 요청된다.  
+> ID 를 통해서 객체를 1개 조회할 때는 사실 쿼리가 2개 정도 나가는 것이기 때문에 큰 문제가 되지 않는다.  
+> 하지만 페이징이나 리스트 조회와 같이 한꺼번에 10~50개 정도의 객체를 조회했다고 가정하면 해당 객체의 연관 관계를 가진 객체를 사용하기 위해서 10~50개의 조회 SQL 쿼리가
+> 추가로 데이터베이스에 요청된다. 
+
+### fetch join
+> JPA 에서 조회한 객체 내의 연관 관계의 객체를 조회 시 추가로 발생하는 SQL 쿼리를 줄이기 위해서 JPQL 에서 fetch join 을 사용한다.  
+> 예시
+> ```java
+> @Query("select m from Member m inner join fetch m.orders")
+> ...
+> ```
+
+### OneToMany fetch join 주의 사항
+> fetch join 은 조회하려는 객체 내의 연관 관계의 객체와의 관계가 ManyToOne 인 경우에는 얼마든지 fetch join 을 함께 사용할 수 있다.   
+> 예시
+> ```java
+> @Query("select m from Member m " +
+>        "inner join fetch m.profile " +
+>        "inner join fetch m.company " +
+>        "inner join fetch m.orders")
+> ...
+> ```
+>
+> 하지만 fetch join 중 ManyToOne 객체가 2개 이상 존재하는 경우(1개인 경우에는 문제가 되지 않는다.) PersistenceBag(ManyToOne 객체가 List 인 경우) 에러가 발생한다.  
+> fetch join 하는 ManyToOne 객체가 2개 이상인 경우에는 QueryDSL 을 사용하여 조회하거나 application.yml 에 
+> `spring.jpa.properties.hibernate.jdbc.batch_size` 옵션으로 1000 과 같은 값을 설정하여 사용하여 ManyToOne 객체 조회 시 조회 쿼리를 줄일 수 있다.
+
+---
+
 ## 스프링 프레임워크의 JPA 예외 변환
 ### PersistenceExceptionTranslationPostProcessor
 > JPA 예외를 스프링 변환 예외로 변경시켜서 발생시키기 위해서는 `PersistenceExceptionTranslationPostProcessor` 를 스프링 Bean 으로 등록해야한다.  
