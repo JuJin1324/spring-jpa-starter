@@ -394,8 +394,14 @@
 
 ---
 
-## Database lock
+## JPA lock
+### JPA 의 특징
+> 데이터베이스는 트랜잭션 도중에 조회 시에는 read lock 을 삽입/수정/삭제 시에는 write lock 을 row 에 걸도록 동작한다.  
+> 하지만 JPA 의 경우에는 변경 감지를 통한 update 및 remove 를 통한 삭제 시에 실시간으로 데이터베이스에 쿼리가 가는 것이 아닌 영속성 컨텍스트가 flush 되어야
+> 해당 쿼리들이 데이터베이스로 호출되기 때문에 lock 이 걸리는 시간이 최소화된다.
+
 ### Optimistic Lock
+> TODO: JPA 동시성 처리 도 검색해보기.
 > 
 
 ### Pessimistic Lock
@@ -477,3 +483,31 @@
 
 ### 주의
 > EntityGraph 로 함께 조회하는 엔티티는 모두 `outer join` 이어서 `inner join` 위주로 조회시에는 JPQL 을 사용하여야한다.
+
+---
+
+## 쓰기 지연 성능 최적화
+### spring.jpa.hibernate.jdbc.batch_size
+> JPA 의 사용시 엔티티를 영속화하게 되면 영속성 컨텍스트를 flush 할 때 insert 문이 발생한다.
+> 여러개의 엔티티를 영속화하게 되면 flush 하였을 때 여러개의 insert 문이 데이터베이스로 호출된다.  
+> 데이터베이스 통신과 같이 네트워크 통신 1번이 내부에서 동작하는 메서드 호출보다 몇만배는 더 큰 비용이 든다.
+> 그래서 여러번 나가는 insert 쿼리를 한번에 모아서 데이터베이스에 보내는 옵션이 `spring.jpa.hibernate.jdbc.batch_size` 이다.  
+> 
+> 값을 50으로 주면 최대 50개의 insert 문을 모아서 한꺼번에 데이터베이스에 보낸다. 하지만 SQL 배치는 같은 SQL 일 때만 유효하다.
+> 중간에 다른 처리가 들어가면 SQL 배치를 다시 시작한다. 예를 들면 다음과 같다.  
+> ```java
+> productRepository.save(new Product());    // 1
+> productRepository.save(new Product());    // 2
+> productRepository.save(new Product());    // 3
+> productRepository.save(new Order());      // 4, 다른 연산
+> productRepository.save(new Product());    // 5
+> productRepository.save(new Product());    // 6
+> ```
+> 1,2,3 을 모아서 하나의 SQL 배치로 실행하고 4를 따로 한 번 실행하고 5,6을 모아서 실행하여 총 3번의 SQL 배치를 실행한다.
+> 
+> 주의: `@GeneratedValue(strategy = GenerationType.IDENTITY)` 사용 시 AUTO_INCREMENT 를 사용하기 때문에 쓰기 지연이 발생하지 않고 즉시
+> insert SQL 이 데이터베이스에 호출된다.  
+> 
+> 참고: 엔티티가 영속 상태가 되려면 식별자가 꼭 필요하다. 그런데 `@GeneratedValue(strategy = GenerationType.IDENTITY)` 를 사용하게 되면 
+> 데이터베이스의 AUTO_INCREMENT 를 사용하여 식별자를 생성하기 때문에 식별자의 정보를 JPA 에서 알기 위해서는 insert 문을 통해서 데이터베이스와 통신할 수 밖에 없다.
+
