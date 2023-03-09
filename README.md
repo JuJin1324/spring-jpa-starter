@@ -6,6 +6,18 @@
 
 ---
 
+## 상속관계 맵핑 전략
+### Single Table 전략
+> TODO
+
+### Join 전략
+> TODO
+
+### Table Per Class 전략
+> TODO
+
+---
+
 ## 읽기 전용 트랜잭션
 ### Query hint
 > Repository 메서드에 사용한다. 예시)
@@ -52,7 +64,7 @@
 >
 > 하지만 fetch join 중 ManyToOne 객체가 2개 이상 존재하는 경우(1개인 경우에는 문제가 되지 않는다.) PersistenceBag(ManyToOne 객체가 List 인 경우) 에러가 발생한다.  
 > fetch join 하는 ManyToOne 객체가 2개 이상인 경우에는 QueryDSL 을 사용하여 조회하거나 application.yml 에 
-> `spring.jpa.properties.hibernate.jdbc.batch_size` 옵션으로 1000 과 같은 값을 설정하여 사용하여 ManyToOne 객체 조회 시 조회 쿼리를 줄일 수 있다.
+> `spring.jpa.properties.hibernate.default_batch_fetch_size` 옵션으로 1000 과 같은 값을 설정하여 사용하여 ManyToOne 객체 조회 시 조회 쿼리를 줄일 수 있다.
 
 ---
 
