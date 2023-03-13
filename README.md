@@ -18,7 +18,60 @@
 
 ---
 
-## 읽기 전용 트랜잭션
+## JPA lock
+### JPA 의 특징
+> 데이터베이스는 트랜잭션 도중에 조회 시에는 read lock 을 삽입/수정/삭제 시에는 write lock 을 row 에 걸도록 동작한다.  
+> 하지만 JPA 의 경우에는 변경 감지를 통한 update 및 remove 를 통한 삭제 시에 실시간으로 데이터베이스에 쿼리가 가는 것이 아닌 영속성 컨텍스트가 flush 되어야
+> 해당 쿼리들이 데이터베이스로 호출되기 때문에 lock 이 걸리는 시간이 최소화된다.
+
+### Optimistic Lock
+> 낙관적 락은 이름 그대로 트랜잭션 대부분은 충돌이 발생하지 않는다고 낙관적으로 가정하는 방법이다. 
+> 이것은 데이터베이스의 락 기능을 사용하는 것이 아니라 JPA 가 제공하는 버전 관리 기능을 사용한다.
+> 데이터베이스가 아닌 애플리케이션에서 제공하는 락이다.  
+> 낙관적 락은 트랜잭션을 커밋하기 전까지는 트랜잭션의 충돌을 알 수 없다는 특징이 있다.
+
+### Pessimistic Lock
+> 비관적 락은 이름 그대로 트랜잭션 충돌이 발생한다고 가정하고 우선 락을 걸고 보는 방법이다. 이것은 데이터베이스가 제공하는 락 기능을 사용한다.
+> `select for update` 구문 사용으로 다른 트랜잭션에서는 해당 row 에 read-lock 및 write-lock 를 모두 걸 수 없도록 write-lock 을 건다.
+
+### @Version
+> JPA 가 제공하는 낙관적 락을 사용하려면 엔티티에 멤버변수를 추가하고 그 위에 @Version 애노테이션을 사용해서 버전 관리 기능을 추가해야 한다.  
+> @Version 애노테이션을 지원하는 자료형은 Long, Integer, Short, Timestamp 이며 모두 Timestamp 제외 윈시 자료형도 가능하다.  
+> 
+> 해당 엔티티를 수정 후 커밋하면 @Version 멤버 변수의 숫자가 1씩 자동으로 증가한다.   
+> 엔티티를 수정할 때 조회 시점의 버전과 수정 시점의 버전이 다르면 예외가 발생한다. 따라서 @Version 애노테이션 사용하면 여러 트랜잭션 커밋 중 최초 수정 커밋만 적용이 된다.  
+> 
+> 임베디드 타입 수정 시에도 version 이 증가한다. 단 연관관계 필드는 @ManyToOne 에서 연관관계 객체 자체가 변해야(외래키가 변해야) version 이 증가한다.  
+> 벌크 연산은 영속성 컨텍스트와는 관계가 없음으로 version 이 증가하지 않으며 version 을 증가시키려면 SQL 에 version 을 증가시키도록 명시해야한다.  
+
+### @Lock
+> Repository 의 메서드에 @Lock 애노테이션을 달아 락 옵션을 설정할 수 있다. 락 옵션은 낙관적 락 뿐 아니라 비관적 락 옵션 역시 설정할 수 있다.
+> 락 옵션은 다음과 같다.  
+> None: 락 옵션 없이 엔티티에 @Version 멤버 변수만 있어도 낙관적 락이 적용된다. 조회한 엔티티를 변경(수정 및 제거)할 경우에만 version 을 확인한다.  
+> 그래서 커밋시 update 및 delete 문에 version 을 확인하는 쿼리가 추가되도록 동작한다.  
+> 
+> @Lock(LockModeType.OPTIMISTIC): 조회한 엔티티를 변경 외에 조회 시에도 version 을 확인한다. 
+> 조회한 엔티티의 변경이 없이 커밋 시에도 추가 select 문을 통해서 조회한 엔티티의 version 정보를 확인하여 다른 트랜잭션으로 인한 변경 시 예외를 발생시킨다.   
+> 
+> @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT): 
+
+### 참조사이트
+> https://isntyet.github.io/jpa/JPA-%EB%B9%84%EA%B4%80%EC%A0%81-%EC%9E%A0%EA%B8%88(Pessimistic-Lock)/
+> https://reiphiel.tistory.com/entry/understanding-jpa-lock
+> https://sabarada.tistory.com/187
+
+---
+
+## Transaction
+### @Transactional
+> @Transactional 은 RuntimeException 과 그 자식인 `언체크(Unchecked)` 예외만 롤백한다.  
+> 만약 체크 예외가 발생해도 롤백하고 싶다면 @Transactional(rollbackFor = Exception.class) 처럼 롤백할 예외를 지정해야 한다.
+
+### JUnit 에서 사용
+> JUnit 테스트 클래스에 @Transactional 애노테이션을 붙인 경우 각 테스트 메서드가 실행 후 테스트가 끝나면 트랜잭션을 강제로 롤백한다.   
+> 강제로 롤백 시키기 때문에 영속성 컨텍스트를 flush 하지 않는다. 플러시를 하지 않으므로 플러시 시점에 어떤 SQL 이 실행되는지 콘솔 로그에 남지 않는다.
+> 어떤 SQL 이 실행되는지 콘솔을 통해 보고 싶으면 테스트 마지막에 em.flush() 를 강제로 호출하면 된다.
+
 ### Query hint
 > Repository 메서드에 사용한다. 예시)
 > ```java
@@ -289,18 +342,6 @@
 
 ---
 
-## Transaction
-### @Transactional
-> @Transactional 은 RuntimeException 과 그 자식인 `언체크(Unchecked)` 예외만 롤백한다.  
-> 만약 체크 예외가 발생해도 롤백하고 싶다면 @Transactional(rollbackFor = Exception.class) 처럼 롤백할 예외를 지정해야 한다.  
-
-### JUnit 에서 사용
-> JUnit 테스트 클래스에 @Transactional 애노테이션을 붙인 경우 각 테스트 메서드가 실행 후 테스트가 끝나면 트랜잭션을 강제로 롤백한다.   
-> 강제로 롤백 시키기 때문에 영속성 컨텍스트를 flush 하지 않는다. 플러시를 하지 않으므로 플러시 시점에 어떤 SQL 이 실행되는지 콘솔 로그에 남지 않는다. 
-> 어떤 SQL 이 실행되는지 콘솔을 통해 보고 싶으면 테스트 마지막에 em.flush() 를 강제로 호출하면 된다.
-
----
-
 ## JPQL
 ### Collection fetch join  
 > JPQL 을 통한 조회 시 둘 이상의 컬렉션을 fetch 할 수 없다.  
@@ -391,26 +432,6 @@
 > 
 > 지연 쓰기를 사용하기 위해서는 Entity 식별자(PK)를 UUID 를 사용하여 Auto increment 가 아닌 애플리케이션 내에서 UUID 를 생성하여 식별자를 직접 지정하여 사용하거나,
 > Oracle 과 같은 시퀀스를 사용하는 DB 의 경우에는 시퀀스를 사용한다.(하지만 save 를 통해서 영속성 컨텍스트에 엔티티를 저장하기 위해서는 시퀀스 넘버를 얻어오는 쿼리가 실행된다.)  
-
----
-
-## JPA lock
-### JPA 의 특징
-> 데이터베이스는 트랜잭션 도중에 조회 시에는 read lock 을 삽입/수정/삭제 시에는 write lock 을 row 에 걸도록 동작한다.  
-> 하지만 JPA 의 경우에는 변경 감지를 통한 update 및 remove 를 통한 삭제 시에 실시간으로 데이터베이스에 쿼리가 가는 것이 아닌 영속성 컨텍스트가 flush 되어야
-> 해당 쿼리들이 데이터베이스로 호출되기 때문에 lock 이 걸리는 시간이 최소화된다.
-
-### Optimistic Lock
-> TODO: JPA 동시성 처리 도 검색해보기.
-> 
-
-### Pessimistic Lock
-> `SELECT FOR UPDATE`: 동시성 제어를 위해 특정 row 에 배타적 LOCK 을 거는 행위, 해당 row 는 commit 이 되기 전까지 다른 트랜잭션에서 조회가 지연된다.  
-
-### 참조사이트
-> https://isntyet.github.io/jpa/JPA-%EB%B9%84%EA%B4%80%EC%A0%81-%EC%9E%A0%EA%B8%88(Pessimistic-Lock)/
-> https://reiphiel.tistory.com/entry/understanding-jpa-lock
-> https://sabarada.tistory.com/187
 
 ---
 
