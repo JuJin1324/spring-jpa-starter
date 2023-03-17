@@ -22,7 +22,12 @@
 ### JPA 의 특징
 > 데이터베이스는 트랜잭션 도중에 조회 시에는 read lock 을 삽입/수정/삭제 시에는 write lock 을 row 에 걸도록 동작한다.  
 > 하지만 JPA 의 경우에는 변경 감지를 통한 update 및 remove 를 통한 삭제 시에 실시간으로 데이터베이스에 쿼리가 가는 것이 아닌 영속성 컨텍스트가 flush 되어야
-> 해당 쿼리들이 데이터베이스로 호출되기 때문에 lock 이 걸리는 시간이 최소화된다.
+> 해당 쿼리들이 데이터베이스로 호출되기 때문에 lock 이 걸리는 시간이 최소화된다.  
+> lock 의 주요 목적은 Repeatable read 를 통한 일관된 읽기와 Lost update 방지에 있다.  
+> MySQL 의 InnoDB + MVCC 경우 Repeatable read 를 기본으로 지원하며 Lost update 를 방지하기 위해서 read-lock 및 write-lock 을 SQL 쿼리를 통해서
+> 방지할 수 있다.  
+> PostgreSQL 의 MVCC 의 경우 따로 lock 없이 Repeatable read 및 Lost update 를 방지하기 때문에 만약 DB 를 PostgreSQL 사용 시 아래 애플리케이션 단의
+> lock 을 걸 필요는 없다. 다만 차후 DBMS 변경을 고려해서 PostgreSQL 을 사용하지만 미리 애플리케이션 단에서 lock 을 걸어두는 것도 방법이겠다.  
 
 ### Optimistic Lock
 > 낙관적 락은 이름 그대로 트랜잭션 대부분은 충돌이 발생하지 않는다고 낙관적으로 가정하는 방법이다. 
@@ -48,17 +53,40 @@
 > Repository 의 메서드에 @Lock 애노테이션을 달아 락 옵션을 설정할 수 있다. 락 옵션은 낙관적 락 뿐 아니라 비관적 락 옵션 역시 설정할 수 있다.
 > 락 옵션은 다음과 같다.  
 > None: 락 옵션 없이 엔티티에 @Version 멤버 변수만 있어도 낙관적 락이 적용된다. 조회한 엔티티를 변경(수정 및 제거)할 경우에만 version 을 확인한다.  
-> 그래서 커밋시 update 및 delete 문에 version 을 확인하는 쿼리가 추가되도록 동작한다.  
+> 그래서 커밋시 update 및 delete 문에 version 을 확인하는 쿼리가 추가되도록 동작한다.    
 > 
-> @Lock(LockModeType.OPTIMISTIC): 조회한 엔티티를 변경 외에 조회 시에도 version 을 확인한다. 
-> 조회한 엔티티의 변경이 없이 커밋 시에도 추가 select 문을 통해서 조회한 엔티티의 version 정보를 확인하여 다른 트랜잭션으로 인한 변경 시 예외를 발생시킨다.   
+> @Lock(LockModeType.OPTIMISTIC): 조회한 엔티티를 변경 외에 조회 시에도 version 을 확인한다.   
+> 조회한 엔티티의 변경이 없이 커밋 시에도 추가 select 문을 통해서 조회한 엔티티의 version 정보를 확인하여 다른 트랜잭션으로 인한 변경 시 예외를 발생시킨다.  
+> read-lock 을 애플리케이션 레벨에서 구현한 것이다.  
 > 
-> @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT): 
+> @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT): 조회만 해도 version 정보를 증가시키며 변경(수정/삭제) 시 추가로 version 정보를 증가한다.  
+> 따라서 조회만 했을 시에도 version 이 한번 증가하고 변경(수정/삭제) 까지 하면 추가로 version 이 증가하여 2번 증가한다.  
+> 일대다 다대일 관계에서 한 엔티티가 묶음으로 가지고 있는 엔티티를 추가로 가질 시에도 version 정보를 증가시켜 동시성 충돌을 예방한다.  
+> write-lock 을 애플리케이션 레벨에서 구현한 것이다.  
+>
+> @Lock(LockModeType.PESSIMISTIC_WRITE): 비관적 락을 거는 것으로 write-lock 을 DB 단에 거는 것이다.  
+> lock 을 JPA 단에서 거는 것이 아닌 DB 단에서 거는 것이기 때문에 엔티티 조회 뿐만 아니라 스칼라(컬럼 일부만) 조회할 시에도 lock 이 동작한다.  
+> 
+> @Lock(LockModeType.PESSIMISTIC_READ): 비관적 락을 거는 것으로 read-lock 을 DB 단에 거는 것이다.  
+> 일반적으로 잘 사용하지 않으며 데이터베이스 대부분은 방언에 의해 PESSIMISTIC_WRITE 로 동작한다.   
+> 
+> @Lock(LockModeType.PESSIMISTIC_FORCE_INCREMENT): 비관적 락을 사용함과 동시에 낙관적 락 처럼 @Version 필드도 사용한다.  
+> 조회만 했을 시에도 version 이 한번 증가하고 변경(수정/삭제) 까지 하면 추가로 version 이 증가하여 2번 증가한다.  
+> `nowait` 를 지원하는 DB 에 대해서 for update nowait 옵션을 적용한다. PostgreSQL 및 MySQL 8.0 이상 버전에서 `for update nowait` 옵션이 적용된다.  
+>
+> for update nowait: DB 의 row 에 한 트랜잭션에 write-lock(exclusive lock) 이 걸려있으면 다른 트랜잭션에서 해당 row 에 접근을 위해서 
+> write-lock 을 요청하면 이전 트랜잭션의 write-lock 이 unlock 될 때 까지 기다리는게 기본 동작이다.  
+> `nowait` 옵션은 쿼리 실행 후 읽으려는 row 에 lock 걸려있으면 바로 트랜잭션 실패 처리를 한다.
+> 
+> 비관적 락 타임아웃은 각 DB 마다 해당 설정이 존재한다. (MySQL 에서는 innodb_lock_wait_timeout 이다)  
+> @Repository 의 메서드에 `@QueryHints({@QueryHint(name = "javax.persistence.lock.timeout", value = "3000")})` 를 통해서 설정할 수 있다.
 
 ### 참조사이트
 > https://isntyet.github.io/jpa/JPA-%EB%B9%84%EA%B4%80%EC%A0%81-%EC%9E%A0%EA%B8%88(Pessimistic-Lock)/
 > https://reiphiel.tistory.com/entry/understanding-jpa-lock
 > https://sabarada.tistory.com/187
+> https://stir.tistory.com/251
+> https://kimdubi.github.io/mysql/skip_locked/
 
 ---
 
