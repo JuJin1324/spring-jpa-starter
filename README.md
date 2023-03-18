@@ -6,87 +6,49 @@
 
 ---
 
-## 상속관계 맵핑 전략
-### Single Table 전략
-> TODO
+## 영속성 컨텍스트(Persistent context)
+### flush
+> flush 는 영속성 컨텍스트의 내용을 데이터베이스에 반영하기 위해서 SQL 쿼리를 날리는 작업이다.(commit 제외)
 
-### Join 전략
-> TODO
-
-### Table Per Class 전략
-> TODO
+### 생명 주기
+> 영속성 컨텍스트의 생명 주기는 기본적으로 트랜잭션의 시작시 생성되며 커밋 혹은 롤백 시 삭제된다.
+>
+> OSIV 설정을 통해서 영속성 컨텍스트의 생명 주기를 Filter/Interceptor 를 시작으로 Controller -> Service -> Repository 를 거쳐서 다시
+> Filter/Interceptor 로 돌아오고나서 영속성 컨텐스트를 삭제하는 것도 가능하다.  
+> 하지만 OSIV 는 스프링에서 뷰를 제공할 때 고려해볼 수 있는 옵션이며 REST API 와 같이 API 를 제공할 시에는 DTO 객체와 같이 버전별 제공 데이터 관리와 같이
+> 완충지대를 제공하는 것이 나아보인다.
 
 ---
 
-## JPA lock
-### JPA 의 특징
-> 데이터베이스는 트랜잭션 도중에 조회 시에는 read lock 을 삽입/수정/삭제 시에는 write lock 을 row 에 걸도록 동작한다.  
-> 하지만 JPA 의 경우에는 변경 감지를 통한 update 및 remove 를 통한 삭제 시에 실시간으로 데이터베이스에 쿼리가 가는 것이 아닌 영속성 컨텍스트가 flush 되어야
-> 해당 쿼리들이 데이터베이스로 호출되기 때문에 lock 이 걸리는 시간이 최소화된다.  
-> lock 의 주요 목적은 Repeatable read 를 통한 일관된 읽기와 Lost update 방지에 있다.  
-> MySQL 의 InnoDB + MVCC 경우 Repeatable read 를 기본으로 지원하며 Lost update 를 방지하기 위해서 read-lock 및 write-lock 을 SQL 쿼리를 통해서
-> 방지할 수 있다.  
-> PostgreSQL 의 MVCC 의 경우 따로 lock 없이 Repeatable read 및 Lost update 를 방지하기 때문에 만약 DB 를 PostgreSQL 사용 시 아래 애플리케이션 단의
-> lock 을 걸 필요는 없다. 다만 차후 DBMS 변경을 고려해서 PostgreSQL 을 사용하지만 미리 애플리케이션 단에서 lock 을 걸어두는 것도 방법이겠다.  
+## N+1 성능 최적화
+### N+1: Paging 혹은 List 조회 시 발생할 수 있는 문제
+> JPQL 에서 객체를 조회 후 조회한 객체의 연관 관계를 가진 객체를 사용할 때 영속성 컨텍스트에 해당 객체가 없기 때문에 추가로 조회 SQL 쿼리가 데이터베이스로 요청된다.  
+> ID 를 통해서 객체를 1개 조회할 때는 사실 쿼리가 2개 정도 나가는 것이기 때문에 큰 문제가 되지 않는다.  
+> 하지만 페이징이나 리스트 조회와 같이 한꺼번에 10~50개 정도의 객체를 조회했다고 가정하면 해당 객체의 연관 관계를 가진 객체를 사용하기 위해서 10~50개의 조회 SQL 쿼리가
+> 추가로 데이터베이스에 요청된다.
 
-### Optimistic Lock
-> 낙관적 락은 이름 그대로 트랜잭션 대부분은 충돌이 발생하지 않는다고 낙관적으로 가정하는 방법이다. 
-> 이것은 데이터베이스의 락 기능을 사용하는 것이 아니라 JPA 가 제공하는 버전 관리 기능을 사용한다.
-> 데이터베이스가 아닌 애플리케이션에서 제공하는 락이다.  
-> 낙관적 락은 트랜잭션을 커밋하기 전까지는 트랜잭션의 충돌을 알 수 없다는 특징이 있다.
+### fetch join
+> JPA 에서 조회한 객체 내의 연관 관계의 객체를 조회 시 추가로 발생하는 SQL 쿼리를 줄이기 위해서 JPQL 에서 fetch join 을 사용한다.  
+> 예시
+> ```java
+> @Query("select m from Member m inner join fetch m.orders")
+> ...
+> ```
 
-### Pessimistic Lock
-> 비관적 락은 이름 그대로 트랜잭션 충돌이 발생한다고 가정하고 우선 락을 걸고 보는 방법이다. 이것은 데이터베이스가 제공하는 락 기능을 사용한다.
-> `select for update` 구문 사용으로 다른 트랜잭션에서는 해당 row 에 read-lock 및 write-lock 를 모두 걸 수 없도록 write-lock 을 건다.
-
-### @Version
-> JPA 가 제공하는 낙관적 락을 사용하려면 엔티티에 멤버변수를 추가하고 그 위에 @Version 애노테이션을 사용해서 버전 관리 기능을 추가해야 한다.  
-> @Version 애노테이션을 지원하는 자료형은 Long, Integer, Short, Timestamp 이며 모두 Timestamp 제외 윈시 자료형도 가능하다.  
-> 
-> 해당 엔티티를 수정 후 커밋하면 @Version 멤버 변수의 숫자가 1씩 자동으로 증가한다.   
-> 엔티티를 수정할 때 조회 시점의 버전과 수정 시점의 버전이 다르면 예외가 발생한다. 따라서 @Version 애노테이션 사용하면 여러 트랜잭션 커밋 중 최초 수정 커밋만 적용이 된다.  
-> 
-> 임베디드 타입 수정 시에도 version 이 증가한다. 단 연관관계 필드는 @ManyToOne 에서 연관관계 객체 자체가 변해야(외래키가 변해야) version 이 증가한다.  
-> 벌크 연산은 영속성 컨텍스트와는 관계가 없음으로 version 이 증가하지 않으며 version 을 증가시키려면 SQL 에 version 을 증가시키도록 명시해야한다.  
-
-### @Lock
-> Repository 의 메서드에 @Lock 애노테이션을 달아 락 옵션을 설정할 수 있다. 락 옵션은 낙관적 락 뿐 아니라 비관적 락 옵션 역시 설정할 수 있다.
-> 락 옵션은 다음과 같다.  
-> None: 락 옵션 없이 엔티티에 @Version 멤버 변수만 있어도 낙관적 락이 적용된다. 조회한 엔티티를 변경(수정 및 제거)할 경우에만 version 을 확인한다.  
-> 그래서 커밋시 update 및 delete 문에 version 을 확인하는 쿼리가 추가되도록 동작한다.    
-> 
-> @Lock(LockModeType.OPTIMISTIC): 조회한 엔티티를 변경 외에 조회 시에도 version 을 확인한다.   
-> 조회한 엔티티의 변경이 없이 커밋 시에도 추가 select 문을 통해서 조회한 엔티티의 version 정보를 확인하여 다른 트랜잭션으로 인한 변경 시 예외를 발생시킨다.  
-> read-lock 을 애플리케이션 레벨에서 구현한 것이다.  
-> 
-> @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT): 조회만 해도 version 정보를 증가시키며 변경(수정/삭제) 시 추가로 version 정보를 증가한다.  
-> 따라서 조회만 했을 시에도 version 이 한번 증가하고 변경(수정/삭제) 까지 하면 추가로 version 이 증가하여 2번 증가한다.  
-> 일대다 다대일 관계에서 한 엔티티가 묶음으로 가지고 있는 엔티티를 추가로 가질 시에도 version 정보를 증가시켜 동시성 충돌을 예방한다.  
-> write-lock 을 애플리케이션 레벨에서 구현한 것이다.  
+### OneToMany fetch join 주의 사항
+> fetch join 은 조회하려는 객체 내의 연관 관계의 객체와의 관계가 ManyToOne 인 경우에는 얼마든지 fetch join 을 함께 사용할 수 있다.   
+> 예시
+> ```java
+> @Query("select m from Member m " +
+>        "inner join fetch m.profile " +
+>        "inner join fetch m.company " +
+>        "inner join fetch m.orders")
+> ...
+> ```
 >
-> @Lock(LockModeType.PESSIMISTIC_WRITE): 비관적 락을 거는 것으로 write-lock 을 DB 단에 거는 것이다.  
-> lock 을 JPA 단에서 거는 것이 아닌 DB 단에서 거는 것이기 때문에 엔티티 조회 뿐만 아니라 스칼라(컬럼 일부만) 조회할 시에도 lock 이 동작한다.  
-> 
-> @Lock(LockModeType.PESSIMISTIC_READ): 비관적 락을 거는 것으로 read-lock 을 DB 단에 거는 것이다.  
-> 일반적으로 잘 사용하지 않으며 데이터베이스 대부분은 방언에 의해 PESSIMISTIC_WRITE 로 동작한다.   
-> 
-> @Lock(LockModeType.PESSIMISTIC_FORCE_INCREMENT): 비관적 락을 사용함과 동시에 낙관적 락 처럼 @Version 필드도 사용한다.  
-> 조회만 했을 시에도 version 이 한번 증가하고 변경(수정/삭제) 까지 하면 추가로 version 이 증가하여 2번 증가한다.  
-> `nowait` 를 지원하는 DB 에 대해서 for update nowait 옵션을 적용한다. PostgreSQL 및 MySQL 8.0 이상 버전에서 `for update nowait` 옵션이 적용된다.  
->
-> for update nowait: DB 의 row 에 한 트랜잭션에 write-lock(exclusive lock) 이 걸려있으면 다른 트랜잭션에서 해당 row 에 접근을 위해서 
-> write-lock 을 요청하면 이전 트랜잭션의 write-lock 이 unlock 될 때 까지 기다리는게 기본 동작이다.  
-> `nowait` 옵션은 쿼리 실행 후 읽으려는 row 에 lock 걸려있으면 바로 트랜잭션 실패 처리를 한다.
-> 
-> 비관적 락 타임아웃은 각 DB 마다 해당 설정이 존재한다. (MySQL 에서는 innodb_lock_wait_timeout 이다)  
-> @Repository 의 메서드에 `@QueryHints({@QueryHint(name = "javax.persistence.lock.timeout", value = "3000")})` 를 통해서 설정할 수 있다.
-
-### 참조사이트
-> https://isntyet.github.io/jpa/JPA-%EB%B9%84%EA%B4%80%EC%A0%81-%EC%9E%A0%EA%B8%88(Pessimistic-Lock)/
-> https://reiphiel.tistory.com/entry/understanding-jpa-lock
-> https://sabarada.tistory.com/187
-> https://stir.tistory.com/251
-> https://kimdubi.github.io/mysql/skip_locked/
+> 하지만 fetch join 중 ManyToOne 객체가 2개 이상 존재하는 경우(1개인 경우에는 문제가 되지 않는다.) PersistenceBag(ManyToOne 객체가 List 인 경우) 에러가 발생한다.  
+> fetch join 하는 ManyToOne 객체가 2개 이상인 경우에는 QueryDSL 을 사용하여 조회하거나 application.yml 에
+> `spring.jpa.properties.hibernate.default_batch_fetch_size` 옵션으로 1000 과 같은 값을 설정하여 사용하여 ManyToOne 객체 조회 시 조회 쿼리를 줄일 수 있다.
 
 ---
 
@@ -109,65 +71,11 @@
 > Repository 의 메서드 중 조회만을 위해서 사용되는 메서드인 경우 위의 `org.hibernate.readOnly` 쿼리 힌트 애노테이션을 붙여서 성능을 향상 시킬 수 있다.  
 > `org.hibernate.readOnly` 를 true 로 설정하면 영속성 컨텍스트에서 변경 감지를 위한 스냅샷 인스턴스를 보관하지 않아 애플리케이션의 메모리 사용이 줄어든다.  
 > 다만 해당 쿼리 힌트의 애노테이션을 사용하여 조회한 엔티티는 변경 감지를 위한 스냅샷 인스턴스가 없음으로 변경하고 커밋을 하더라도 데이터베이스에 반영되지 않기 때문에 사용에 조심해야한다.  
-> 이렇게 버그 발생 확률이 높기 때문에 성능상 이점이 큰지를 따져서 사용하는 것이 바람직하며 왠만하면 사용하지 않는다.(왠만해서는 큰 이점이 없는 듯 하다.) 
+> 이렇게 버그 발생 확률이 높기 때문에 성능상 이점이 큰지를 따져서 사용하는 것이 바람직하며 왠만하면 사용하지 않는다.(왠만해서는 큰 이점이 없는 듯 하다.)
 
 ### @Transactional(readOnly = true)
 > 엔티티를 읽기만 하고 수정이 없이 트랜잭션을 종료하는 Service 의 메서드에 `@Transactional(readOnly = true)` 애노테이션을 붙이면 읽기 전용 트랜잭션으로 동작한다.
-> 트랜잭션을 커밋해도 영속성 컨텍스트를 플러시하지 않는다.  
-
----
-
-## N+1 성능 최적화
-### N+1: Paging 혹은 List 조회 시 발생할 수 있는 문제
-> JPQL 에서 객체를 조회 후 조회한 객체의 연관 관계를 가진 객체를 사용할 때 영속성 컨텍스트에 해당 객체가 없기 때문에 추가로 조회 SQL 쿼리가 데이터베이스로 요청된다.  
-> ID 를 통해서 객체를 1개 조회할 때는 사실 쿼리가 2개 정도 나가는 것이기 때문에 큰 문제가 되지 않는다.  
-> 하지만 페이징이나 리스트 조회와 같이 한꺼번에 10~50개 정도의 객체를 조회했다고 가정하면 해당 객체의 연관 관계를 가진 객체를 사용하기 위해서 10~50개의 조회 SQL 쿼리가
-> 추가로 데이터베이스에 요청된다. 
-
-### fetch join
-> JPA 에서 조회한 객체 내의 연관 관계의 객체를 조회 시 추가로 발생하는 SQL 쿼리를 줄이기 위해서 JPQL 에서 fetch join 을 사용한다.  
-> 예시
-> ```java
-> @Query("select m from Member m inner join fetch m.orders")
-> ...
-> ```
-
-### OneToMany fetch join 주의 사항
-> fetch join 은 조회하려는 객체 내의 연관 관계의 객체와의 관계가 ManyToOne 인 경우에는 얼마든지 fetch join 을 함께 사용할 수 있다.   
-> 예시
-> ```java
-> @Query("select m from Member m " +
->        "inner join fetch m.profile " +
->        "inner join fetch m.company " +
->        "inner join fetch m.orders")
-> ...
-> ```
->
-> 하지만 fetch join 중 ManyToOne 객체가 2개 이상 존재하는 경우(1개인 경우에는 문제가 되지 않는다.) PersistenceBag(ManyToOne 객체가 List 인 경우) 에러가 발생한다.  
-> fetch join 하는 ManyToOne 객체가 2개 이상인 경우에는 QueryDSL 을 사용하여 조회하거나 application.yml 에 
-> `spring.jpa.properties.hibernate.default_batch_fetch_size` 옵션으로 1000 과 같은 값을 설정하여 사용하여 ManyToOne 객체 조회 시 조회 쿼리를 줄일 수 있다.
-
----
-
-## 스프링 프레임워크의 JPA 예외 변환
-### PersistenceExceptionTranslationPostProcessor
-> JPA 예외를 스프링 변환 예외로 변경시켜서 발생시키기 위해서는 `PersistenceExceptionTranslationPostProcessor` 를 스프링 Bean 으로 등록해야한다.  
-> ```java
-> @Bean
-> public PersistenceExceptionTranslationPostProcessor exceptionTranslation() {
->     return new PersistenceExceptionTranslationPostProcessor();
-> }
-> ```
-> @Repository 애노테이션을 붙인 클래스와 JpaRepository 를 상속받은 인터페이스의 메서드에서 예외 발생 시 스프링 변환 예외가 발생한다.  
-
-### SpringBoot 2.0 + Spring Data JPA
-> SpringBoot 2.0 이상의 버전과 Spring Data JPA 를 사용하면 JPA 예외를 스프링 변환 예외로 변경시키기 위해서 위의 `PersistenceExceptionTranslationPostProcessor` 를
-> 스프링 빈으로 등록할 필요없이 자동으로 등록되며, @Repository 애노테이션을 붙인 클래스, JpaRepository 를 상속받은 인터페이스 및 Repository 를 상속받은 인터페이스(CommonRepository)까지 
-> 모두 스프링 변환 예외가 적용된다.
-
-### 메서드 옆에 throws 붙이기
-> 메서드 옆에 throws 로 JPA 예외를 던지도록 명시하면 스프링 예외로 변환하지 않고 throws 선언한 예외로 예외를 발생시킨다.    
-> 주의점은 메서드 옆에 throws Exception 을 선언하게되는 경우인데 `java.lang.Exception` 을 throws 선언하면 스프링 예외로 변환하지 않고 발생시킨다.   
+> 트랜잭션을 커밋해도 영속성 컨텍스트를 플러시하지 않는다.
 
 ---
 
@@ -175,7 +83,7 @@
 ### 개요
 > EntityListener: @PrePersist, @PreUpdate 와 같은 애노테이션을 붙인 메서드.  
 > 리스너 메서드를 구현한 클래스를 자식 클래스에 상속했을 때 자식 클래스에서도 정상 동작한다.  
-> 상위 클래스의 리스너 메서드의 동작을 자식 클래스에서 막기 위해서는 자식 클래스에서 클래스 위에 `@ExcludeSuperclassListeners` 애노테이션을 선언한다.  
+> 상위 클래스의 리스너 메서드의 동작을 자식 클래스에서 막기 위해서는 자식 클래스에서 클래스 위에 `@ExcludeSuperclassListeners` 애노테이션을 선언한다.
 
 ### 종류
 > 1.@PostLoad: 엔티티가 영속성 컨텍스트에 조회된 직후 호출  
@@ -184,11 +92,11 @@
 > 4.@PreRemove: remove() 메서드를 호출해서 엔티티를 영속성 컨텍스트에서 삭제하기 직전에 호출.  
 > 5.@PostPersist: flush 나 commit 을 호출해서 엔티티를 데이터베이스에 저장한 직후에 호출.  
 > 6.PostUpdate: flush 나 commit 을 호출해서 엔티티를 데이터베이스에 수정한 직후에 호출.  
-> 7.PostRemove: flush 나 commit 을 호출해서 엔티티를 데이터베이스에 삭제한 직후에 호출.  
+> 7.PostRemove: flush 나 commit 을 호출해서 엔티티를 데이터베이스에 삭제한 직후에 호출.
 
 ### 리스너 등록
 > 리스너 메서드들만 구현해서 Listener 클래스를 만들어서 엔티티에 해당 리스너를 사용하도록 할 수도 있다.  
-> 예를 들면 엔티티의 생명주기에 따른 로깅 또는 생성 시 CreatedDate 에 값 넣기, 업데이트 시 UpdateDate 에 값 넣는 방식으로도 활용할 수 있다.  
+> 예를 들면 엔티티의 생명주기에 따른 로깅 또는 생성 시 CreatedDate 에 값 넣기, 업데이트 시 UpdateDate 에 값 넣는 방식으로도 활용할 수 있다.
 > ```java
 > @Entity
 > @EntityListeners(TimeListener.class)
@@ -274,17 +182,111 @@
 
 ---
 
-## 영속성 컨텍스트(Persistent context)
-### flush
-> flush 는 영속성 컨텍스트의 내용을 데이터베이스에 반영하기 위해서 SQL 쿼리를 날리는 작업이다.(commit 제외)  
+## Entity 지연 로딩
+### 지연 로딩 예제
+> Member 객체와 Team 객체가 연관 관계를 가지고 있고 Member 다 대 Team 일의 연관관계인 다대일 연관관계를 가진다.  
+> Member 테이블이 Team 의 PK(식별자)를 가지며 Member 객체가 Team 객체를 참조한다.  
+> Member 객체에서 참조하는 Team 객체에 지연로딩을 설정하였다면 해당 객체는 프록시 객체 상태로 되어있으며 Member 객체가 참조하는 Team 객체의 멤버 변수(property) 를
+> 사용하는 경우에 Team 프록시가 가지고 있는 Team 객체가 초기화된다.
 
-### 생명 주기
-> 영속성 컨텍스트의 생명 주기는 기본적으로 트랜잭션의 시작시 생성되며 커밋 혹은 롤백 시 삭제된다.  
-> 
-> OSIV 설정을 통해서 영속성 컨텍스트의 생명 주기를 Filter/Interceptor 를 시작으로 Controller -> Service -> Repository 를 거쳐서 다시 
-> Filter/Interceptor 로 돌아오고나서 영속성 컨텐스트를 삭제하는 것도 가능하다.  
-> 하지만 OSIV 는 스프링에서 뷰를 제공할 때 고려해볼 수 있는 옵션이며 REST API 와 같이 API 를 제공할 시에는 DTO 객체와 같이 버전별 제공 데이터 관리와 같이
-> 완충지대를 제공하는 것이 나아보인다.
+### ID(식별자)만 사용하는 경우
+> Member 객체가 참조하는 Team 객체의 멤버 변수를 자주 사용하는 경우 JPQL 에서 join 을 이용해서 처음부터 Team 객체를 초기화한 상태로 가져오는 경우가 있다.  
+> 하지만 Team 객체의 멤버 변수 중 ID(식별자)만 사용하는 경우 Team 객체가 초기화되어 있지 안더라도 사용할 수 있음으로 JPQL 에서 join 을 이용해서 가져올 필요가 없다.
+
+---
+
+## Entity 지연 쓰기
+### 기본 전략
+> JPA 의 Entity 는 기본 전략으로 지연 쓰기를 사용한다.   
+> 지연 쓰기란 Entity 를 save 할 시에 transaction commit 후 flush 시점에 Entity 를 데이터베이스에 insert 쿼리를 모아서 한꺼번에 insert 시키는 전략이다.
+
+### Auto Increment
+> 먼저 알아야할 점은 Entity 가 영속성 컨텍스트에 존재하기 위해서는 해당 Entity 객체가 식별자(PK)를 가지고 있어야한다는 점이다.      
+> MySQL, Postgres 등의 DB 에서 사용하는 Auto Increment 를 사용하기 위해서 Entity 에 `@GeneratedValue(strategy = GenerationType.IDENTITY)` 를 사용하는 경우,  
+> 해당 Entity 를 영속성 컨텍스트에 저장하기 위해서 save 를 하게 되면 지연 쓰기가 되지 않고 곧바로 insert 쿼리가 실행된다.   
+> 위에서 말했듯이 영속성 컨텍스트에 저장하기 위해서는 해당 Entity 가 식별자(PK)를 가지고 있어야하는데 Auto increment 를 사용하는 DB 에서는 식별자를 가지기 위해서는
+> insert 쿼리가 실행되어야하기 때문이다.
+>
+> 지연 쓰기를 사용하기 위해서는 Entity 식별자(PK)를 UUID 를 사용하여 Auto increment 가 아닌 애플리케이션 내에서 UUID 를 생성하여 식별자를 직접 지정하여 사용하거나,
+> Oracle 과 같은 시퀀스를 사용하는 DB 의 경우에는 시퀀스를 사용한다.(하지만 save 를 통해서 영속성 컨텍스트에 엔티티를 저장하기 위해서는 시퀀스 넘버를 얻어오는 쿼리가 실행된다.)
+
+### 쓰기 지연 성능 최적화 - spring.jpa.hibernate.jdbc.batch_size
+> JPA 의 사용시 엔티티를 영속화하게 되면 영속성 컨텍스트를 flush 할 때 insert 문이 발생한다.
+> 여러개의 엔티티를 영속화하게 되면 flush 하였을 때 여러개의 insert 문이 데이터베이스로 호출된다.  
+> 데이터베이스 통신과 같이 네트워크 통신 1번이 내부에서 동작하는 메서드 호출보다 몇만배는 더 큰 비용이 든다.
+> 그래서 여러번 나가는 insert 쿼리를 한번에 모아서 데이터베이스에 보내는 옵션이 `spring.jpa.hibernate.jdbc.batch_size` 이다.
+>
+> 값을 50으로 주면 최대 50개의 insert 문을 모아서 한꺼번에 데이터베이스에 보낸다. 하지만 SQL 배치는 같은 SQL 일 때만 유효하다.
+> 중간에 다른 처리가 들어가면 SQL 배치를 다시 시작한다. 예를 들면 다음과 같다.
+> ```java
+> productRepository.save(new Product());    // 1
+> productRepository.save(new Product());    // 2
+> productRepository.save(new Product());    // 3
+> productRepository.save(new Order());      // 4, 다른 연산
+> productRepository.save(new Product());    // 5
+> productRepository.save(new Product());    // 6
+> ```
+> 1,2,3 을 모아서 하나의 SQL 배치로 실행하고 4를 따로 한 번 실행하고 5,6을 모아서 실행하여 총 3번의 SQL 배치를 실행한다.
+>
+> 주의: `@GeneratedValue(strategy = GenerationType.IDENTITY)` 사용 시 AUTO_INCREMENT 를 사용하기 때문에 쓰기 지연이 발생하지 않고 즉시
+> insert SQL 이 데이터베이스에 호출된다.
+>
+> 참고: 엔티티가 영속 상태가 되려면 식별자가 꼭 필요하다. 그런데 `@GeneratedValue(strategy = GenerationType.IDENTITY)` 를 사용하게 되면
+> 데이터베이스의 AUTO_INCREMENT 를 사용하여 식별자를 생성하기 때문에 식별자의 정보를 JPA 에서 알기 위해서는 insert 문을 통해서 데이터베이스와 통신할 수 밖에 없다.
+
+---
+
+## application.yml
+### spring.jpa.properties.hibernate.enable_lazy_load_no_trans
+> 트랜잭션 범위가 끝나면 영속성 컨텍스트가 함께 종료되는 것이 JPA의 기본 전략이다.  
+> enable_lazy_load_no_trans 옵션은 OSIV와 비슷하기는 한데, 영속성 컨텍스트가 종료되어도, 새로운 데이터베이스 커넥션을 획득해서 지연로딩을
+> 가능하게 해준다. 이 방법은 여러번 지연로딩이 있으면 그때마다 각각 새로운 데이터베이스 커넥션을 획득하기 때문에 성능상 매우 좋지 않다.
+> 해당 기능은 사용하지 않는다.
+
+---
+
+## EqualsAndHashCode - Entity
+### Object.equals
+> Object 객체의 equals 메서드는 기본적으로 동일 객체 즉 객체주소가 같아야 true 를 반환한다.
+
+### Entity 에 EqualsAndHashCode 구현
+> Entity 에 EqualsAndHashCode 구현시 다음의 3가지 방식이 존재한다.  
+> 1.PK 로만 equals() 구현하기  
+> 2.PK 를 제외하고 equals() 구현하기  
+> 3.비즈니스 키를 사용한 동등성 구현하기
+
+### 1.PK 로만 equals() 구현하기
+> 비교하려는 두 객체가 모두 영속성 컨텍스트에 존재해야한다. 영속 객체와 준영속 객체를 비교 시 항상 false 처리되기 때문에
+> 영속 객체를 담은 Set 객체에 준영속 객체를 추가해야하는 상황에서는 적합하지 않다.
+
+### 2.PK 를 제외하고 equals() 구현하기
+> 엔티티에서 PK 를 제외한 property 들만 equals() 메서드 구현 시 만약 참조 객체(join 하는 객체)가 있다면 해당 객체는 제외해서 구현해야한다.   
+> 준영속 객체와 비교하려는 영속 객체의 property 일부가 변경된 경우가 존재하여 비즈니스 적으로는 같아야하는 객체인데 시점에 의해서 다른 객체로 인식할 수 있는 상황이 발생할 수 있음.
+
+### 3.비즈니스 키를 사용한 동등성 구현하기
+> 영속 객체를 Set 객체에 준영속 객체를 추가해야하는 상황에서 가장 적합해보임.  
+> PK 를 제외하고 엔티티에서 가장 변경이 적으며 대체 식별자로 사용 가능한 Property 만 equals 메서드로 비교.  
+> 대체 식별자로 사용이 가능하려면 1.UNIQUE 제약 조건을 가져야하며, 2.변경 횟수가 다소 적은 편에 속하여야한다.   
+> 위의 PK 를 제외하고 equals() 구현에서 맹점이 되었던 영속 객체의 property 일부가 변경된 경우에도 동일 객체로 인식할 수 있음.
+>
+> 비즈니스 키는 유일성만 보장되면 가끔 있는 변경 정도는 허용해도 좋다. 따라서 데이터베이스 기본 키 같이 너무 딱딱하게 정하지 않아도 된다.
+> 예를 들어 회원 엔티티에 이름과 연락처가 같은 회원이 없다면 회원의 이름과 연락처 정도만 조합해서 사용해도 된다.
+
+### 참조사이트
+> [JPA Entity의 equals와 hashCode](https://velog.io/@park2348190/JPA-Entity%EC%9D%98-equals%EC%99%80-hashCode)
+> [Jpa Entity 의 Equals, 객체 동일성과 동등성, Lombok 을 써도 될까?](https://blog.yevgnenll.me/posts/jpa-entity-eqauls-and-hashcode-equality)
+
+---
+
+## 상속관계 맵핑 전략
+### Single Table 전략
+> TODO
+
+### Join 전략
+> TODO
+
+### Table Per Class 전략
+> TODO
 
 ---
 
@@ -327,6 +329,11 @@
 > }
 > ```
 
+### JpaRepository vs CommonRepository
+> JpaRepository 의 경우 기본적인 CRUD 관련 메서드가 제공되며, JpaRepository 를 상속받는 Repository 인터페이스는 앞의 이유로 기본적인 CRUD 관련 메서드가
+> 개발자의 뜻과 상관없이 모두 노출(제공)된다.  
+> Repository 에 선언한 메서드만 외부로 노출하고 싶은 경우 CommonRepository 를 상속하여 사용한다.
+
 ### 벌크성 쿼리 주의 사항
 > JpaRepository 를 상속받는 리포지토리에서 벌크성 데이터 수정/삭제를 위한 쿼리에는 `@Modifying` 애노테이션을 붙이며,
 > 해당 애노테이션의 옵션에는 `clearAutomatically = true/false, flush` 및 `flushAutomatically = true/false` 가 있다.  
@@ -367,6 +374,28 @@
 ### 참조사이트
 > [Spring Data JPA @Modifying (1) - clearAutomatically](https://devhyogeon.tistory.com/4)  
 > [Spring Data JPA @Modifying (2) - flushAutomatically](https://devhyogeon.tistory.com/5)
+
+---
+
+## 스프링 프레임워크의 JPA 예외 변환
+### PersistenceExceptionTranslationPostProcessor
+> JPA 예외를 스프링 변환 예외로 변경시켜서 발생시키기 위해서는 `PersistenceExceptionTranslationPostProcessor` 를 스프링 Bean 으로 등록해야한다.
+> ```java
+> @Bean
+> public PersistenceExceptionTranslationPostProcessor exceptionTranslation() {
+>     return new PersistenceExceptionTranslationPostProcessor();
+> }
+> ```
+> @Repository 애노테이션을 붙인 클래스와 JpaRepository 를 상속받은 인터페이스의 메서드에서 예외 발생 시 스프링 변환 예외가 발생한다.
+
+### SpringBoot 2.0 + Spring Data JPA
+> SpringBoot 2.0 이상의 버전과 Spring Data JPA 를 사용하면 JPA 예외를 스프링 변환 예외로 변경시키기 위해서 위의 `PersistenceExceptionTranslationPostProcessor` 를
+> 스프링 빈으로 등록할 필요없이 자동으로 등록되며, @Repository 애노테이션을 붙인 클래스, JpaRepository 를 상속받은 인터페이스 및 Repository 를 상속받은 인터페이스(CommonRepository)까지
+> 모두 스프링 변환 예외가 적용된다.
+
+### 메서드 옆에 throws 붙이기
+> 메서드 옆에 throws 로 JPA 예외를 던지도록 명시하면 스프링 예외로 변환하지 않고 throws 선언한 예외로 예외를 발생시킨다.    
+> 주의점은 메서드 옆에 throws Exception 을 선언하게되는 경우인데 `java.lang.Exception` 을 throws 선언하면 스프링 예외로 변환하지 않고 발생시킨다.
 
 ---
 
@@ -433,83 +462,75 @@
 
 ---
 
-## Entity 지연 로딩
-### 지연 로딩 예제
-> Member 객체와 Team 객체가 연관 관계를 가지고 있고 Member 다 대 Team 일의 연관관계인 다대일 연관관계를 가진다.  
-> Member 테이블이 Team 의 PK(식별자)를 가지며 Member 객체가 Team 객체를 참조한다.  
-> Member 객체에서 참조하는 Team 객체에 지연로딩을 설정하였다면 해당 객체는 프록시 객체 상태로 되어있으며 Member 객체가 참조하는 Team 객체의 멤버 변수(property) 를
-> 사용하는 경우에 Team 프록시가 가지고 있는 Team 객체가 초기화된다.  
+## JPA lock
+### JPA 의 특징
+> 데이터베이스는 트랜잭션 도중에 조회 시에는 read lock 을 삽입/수정/삭제 시에는 write lock 을 row 에 걸도록 동작한다.  
+> 하지만 JPA 의 경우에는 변경 감지를 통한 update 및 remove 를 통한 삭제 시에 실시간으로 데이터베이스에 쿼리가 가는 것이 아닌 영속성 컨텍스트가 flush 되어야
+> 해당 쿼리들이 데이터베이스로 호출되기 때문에 lock 이 걸리는 시간이 최소화된다.  
+> lock 의 주요 목적은 Repeatable read 를 통한 일관된 읽기와 Lost update 방지에 있다.  
+> MySQL 의 InnoDB + MVCC 경우 Repeatable read 를 기본으로 지원하며 Lost update 를 방지하기 위해서 read-lock 및 write-lock 을 SQL 쿼리를 통해서
+> 방지할 수 있다.  
+> PostgreSQL 의 MVCC 의 경우 따로 lock 없이 Repeatable read 및 Lost update 를 방지하기 때문에 만약 DB 를 PostgreSQL 사용 시 아래 애플리케이션 단의
+> lock 을 걸 필요는 없다. 다만 차후 DBMS 변경을 고려해서 PostgreSQL 을 사용하지만 미리 애플리케이션 단에서 lock 을 걸어두는 것도 방법이겠다.
 
-### ID(식별자)만 사용하는 경우
-> Member 객체가 참조하는 Team 객체의 멤버 변수를 자주 사용하는 경우 JPQL 에서 join 을 이용해서 처음부터 Team 객체를 초기화한 상태로 가져오는 경우가 있다.  
-> 하지만 Team 객체의 멤버 변수 중 ID(식별자)만 사용하는 경우 Team 객체가 초기화되어 있지 안더라도 사용할 수 있음으로 JPQL 에서 join 을 이용해서 가져올 필요가 없다.  
+### Optimistic Lock
+> 낙관적 락은 이름 그대로 트랜잭션 대부분은 충돌이 발생하지 않는다고 낙관적으로 가정하는 방법이다.
+> 이것은 데이터베이스의 락 기능을 사용하는 것이 아니라 JPA 가 제공하는 버전 관리 기능을 사용한다.
+> 데이터베이스가 아닌 애플리케이션에서 제공하는 락이다.  
+> 낙관적 락은 트랜잭션을 커밋하기 전까지는 트랜잭션의 충돌을 알 수 없다는 특징이 있다.
 
----
+### Pessimistic Lock
+> 비관적 락은 이름 그대로 트랜잭션 충돌이 발생한다고 가정하고 우선 락을 걸고 보는 방법이다. 이것은 데이터베이스가 제공하는 락 기능을 사용한다.
+> `select for update` 구문 사용으로 다른 트랜잭션에서는 해당 row 에 read-lock 및 write-lock 를 모두 걸 수 없도록 write-lock 을 건다.
 
-## Entity 지연 쓰기
-### 기본 전략
-> JPA 의 Entity 는 기본 전략으로 지연 쓰기를 사용한다.   
-> 지연 쓰기란 Entity 를 save 할 시에 transaction commit 후 flush 시점에 Entity 를 데이터베이스에 insert 쿼리를 모아서 한꺼번에 insert 시키는 전략이다.
+### @Version
+> JPA 가 제공하는 낙관적 락을 사용하려면 엔티티에 멤버변수를 추가하고 그 위에 @Version 애노테이션을 사용해서 버전 관리 기능을 추가해야 한다.  
+> @Version 애노테이션을 지원하는 자료형은 Long, Integer, Short, Timestamp 이며 모두 Timestamp 제외 윈시 자료형도 가능하다.
+>
+> 해당 엔티티를 수정 후 커밋하면 @Version 멤버 변수의 숫자가 1씩 자동으로 증가한다.   
+> 엔티티를 수정할 때 조회 시점의 버전과 수정 시점의 버전이 다르면 예외가 발생한다. 따라서 @Version 애노테이션 사용하면 여러 트랜잭션 커밋 중 최초 수정 커밋만 적용이 된다.
+>
+> 임베디드 타입 수정 시에도 version 이 증가한다. 단 연관관계 필드는 @ManyToOne 에서 연관관계 객체 자체가 변해야(외래키가 변해야) version 이 증가한다.  
+> 벌크 연산은 영속성 컨텍스트와는 관계가 없음으로 version 이 증가하지 않으며 version 을 증가시키려면 SQL 에 version 을 증가시키도록 명시해야한다.
 
-### Auto Increment
-> 먼저 알아야할 점은 Entity 가 영속성 컨텍스트에 존재하기 위해서는 해당 Entity 객체가 식별자(PK)를 가지고 있어야한다는 점이다.      
-> MySQL, Postgres 등의 DB 에서 사용하는 Auto Increment 를 사용하기 위해서 Entity 에 `@GeneratedValue(strategy = GenerationType.IDENTITY)` 를 사용하는 경우,  
-> 해당 Entity 를 영속성 컨텍스트에 저장하기 위해서 save 를 하게 되면 지연 쓰기가 되지 않고 곧바로 insert 쿼리가 실행된다.   
-> 위에서 말했듯이 영속성 컨텍스트에 저장하기 위해서는 해당 Entity 가 식별자(PK)를 가지고 있어야하는데 Auto increment 를 사용하는 DB 에서는 식별자를 가지기 위해서는
-> insert 쿼리가 실행되어야하기 때문이다.  
-> 
-> 지연 쓰기를 사용하기 위해서는 Entity 식별자(PK)를 UUID 를 사용하여 Auto increment 가 아닌 애플리케이션 내에서 UUID 를 생성하여 식별자를 직접 지정하여 사용하거나,
-> Oracle 과 같은 시퀀스를 사용하는 DB 의 경우에는 시퀀스를 사용한다.(하지만 save 를 통해서 영속성 컨텍스트에 엔티티를 저장하기 위해서는 시퀀스 넘버를 얻어오는 쿼리가 실행된다.)  
-
----
-
-## application.yml
-### spring.jpa.properties.hibernate.enable_lazy_load_no_trans
-> 트랜잭션 범위가 끝나면 영속성 컨텍스트가 함께 종료되는 것이 JPA의 기본 전략이다.  
-> enable_lazy_load_no_trans 옵션은 OSIV와 비슷하기는 한데, 영속성 컨텍스트가 종료되어도, 새로운 데이터베이스 커넥션을 획득해서 지연로딩을 
-> 가능하게 해준다. 이 방법은 여러번 지연로딩이 있으면 그때마다 각각 새로운 데이터베이스 커넥션을 획득하기 때문에 성능상 매우 좋지 않다.
-> 해당 기능은 사용하지 않는다.
-
----
-
-## EqualsAndHashCode - Entity
-### Object.equals
-> Object 객체의 equals 메서드는 기본적으로 동일 객체 즉 객체주소가 같아야 true 를 반환한다.  
-
-### Entity 에 EqualsAndHashCode 구현
-> Entity 에 EqualsAndHashCode 구현시 다음의 3가지 방식이 존재한다.  
-> 1.PK 로만 equals() 구현하기  
-> 2.PK 를 제외하고 equals() 구현하기  
-> 3.비즈니스 키를 사용한 동등성 구현하기  
-
-### 1.PK 로만 equals() 구현하기
-> 비교하려는 두 객체가 모두 영속성 컨텍스트에 존재해야한다. 영속 객체와 준영속 객체를 비교 시 항상 false 처리되기 때문에 
-> 영속 객체를 담은 Set 객체에 준영속 객체를 추가해야하는 상황에서는 적합하지 않다.
-
-### 2.PK 를 제외하고 equals() 구현하기
-> 엔티티에서 PK 를 제외한 property 들만 equals() 메서드 구현 시 만약 참조 객체(join 하는 객체)가 있다면 해당 객체는 제외해서 구현해야한다.   
-> 준영속 객체와 비교하려는 영속 객체의 property 일부가 변경된 경우가 존재하여 비즈니스 적으로는 같아야하는 객체인데 시점에 의해서 다른 객체로 인식할 수 있는 상황이 발생할 수 있음.    
-
-### 3.비즈니스 키를 사용한 동등성 구현하기
-> 영속 객체를 Set 객체에 준영속 객체를 추가해야하는 상황에서 가장 적합해보임.  
-> PK 를 제외하고 엔티티에서 가장 변경이 적으며 대체 식별자로 사용 가능한 Property 만 equals 메서드로 비교.  
-> 대체 식별자로 사용이 가능하려면 1.UNIQUE 제약 조건을 가져야하며, 2.변경 횟수가 다소 적은 편에 속하여야한다.   
-> 위의 PK 를 제외하고 equals() 구현에서 맹점이 되었던 영속 객체의 property 일부가 변경된 경우에도 동일 객체로 인식할 수 있음.  
-> 
-> 비즈니스 키는 유일성만 보장되면 가끔 있는 변경 정도는 허용해도 좋다. 따라서 데이터베이스 기본 키 같이 너무 딱딱하게 정하지 않아도 된다.
-> 예를 들어 회원 엔티티에 이름과 연락처가 같은 회원이 없다면 회원의 이름과 연락처 정도만 조합해서 사용해도 된다.
+### @Lock
+> Repository 의 메서드에 @Lock 애노테이션을 달아 락 옵션을 설정할 수 있다. 락 옵션은 낙관적 락 뿐 아니라 비관적 락 옵션 역시 설정할 수 있다.
+> 락 옵션은 다음과 같다.  
+> None: 락 옵션 없이 엔티티에 @Version 멤버 변수만 있어도 낙관적 락이 적용된다. 조회한 엔티티를 변경(수정 및 제거)할 경우에만 version 을 확인한다.  
+> 그래서 커밋시 update 및 delete 문에 version 을 확인하는 쿼리가 추가되도록 동작한다.
+>
+> @Lock(LockModeType.OPTIMISTIC): 조회한 엔티티를 변경 외에 조회 시에도 version 을 확인한다.   
+> 조회한 엔티티의 변경이 없이 커밋 시에도 추가 select 문을 통해서 조회한 엔티티의 version 정보를 확인하여 다른 트랜잭션으로 인한 변경 시 예외를 발생시킨다.  
+> read-lock 을 애플리케이션 레벨에서 구현한 것이다.
+>
+> @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT): 조회만 해도 version 정보를 증가시키며 변경(수정/삭제) 시 추가로 version 정보를 증가한다.  
+> 따라서 조회만 했을 시에도 version 이 한번 증가하고 변경(수정/삭제) 까지 하면 추가로 version 이 증가하여 2번 증가한다.  
+> 일대다 다대일 관계에서 한 엔티티가 묶음으로 가지고 있는 엔티티를 추가로 가질 시에도 version 정보를 증가시켜 동시성 충돌을 예방한다.  
+> write-lock 을 애플리케이션 레벨에서 구현한 것이다.
+>
+> @Lock(LockModeType.PESSIMISTIC_WRITE): 비관적 락을 거는 것으로 write-lock 을 DB 단에 거는 것이다.  
+> lock 을 JPA 단에서 거는 것이 아닌 DB 단에서 거는 것이기 때문에 엔티티 조회 뿐만 아니라 스칼라(컬럼 일부만) 조회할 시에도 lock 이 동작한다.
+>
+> @Lock(LockModeType.PESSIMISTIC_READ): 비관적 락을 거는 것으로 read-lock 을 DB 단에 거는 것이다.  
+> 일반적으로 잘 사용하지 않으며 데이터베이스 대부분은 방언에 의해 PESSIMISTIC_WRITE 로 동작한다.
+>
+> @Lock(LockModeType.PESSIMISTIC_FORCE_INCREMENT): 비관적 락을 사용함과 동시에 낙관적 락 처럼 @Version 필드도 사용한다.  
+> 조회만 했을 시에도 version 이 한번 증가하고 변경(수정/삭제) 까지 하면 추가로 version 이 증가하여 2번 증가한다.  
+> `nowait` 를 지원하는 DB 에 대해서 for update nowait 옵션을 적용한다. PostgreSQL 및 MySQL 8.0 이상 버전에서 `for update nowait` 옵션이 적용된다.
+>
+> for update nowait: DB 의 row 에 한 트랜잭션에 write-lock(exclusive lock) 이 걸려있으면 다른 트랜잭션에서 해당 row 에 접근을 위해서
+> write-lock 을 요청하면 이전 트랜잭션의 write-lock 이 unlock 될 때 까지 기다리는게 기본 동작이다.  
+> `nowait` 옵션은 쿼리 실행 후 읽으려는 row 에 lock 걸려있으면 바로 트랜잭션 실패 처리를 한다.
+>
+> 비관적 락 타임아웃은 각 DB 마다 해당 설정이 존재한다. (MySQL 에서는 innodb_lock_wait_timeout 이다)  
+> @Repository 의 메서드에 `@QueryHints({@QueryHint(name = "javax.persistence.lock.timeout", value = "3000")})` 를 통해서 설정할 수 있다.
 
 ### 참조사이트
-> [JPA Entity의 equals와 hashCode](https://velog.io/@park2348190/JPA-Entity%EC%9D%98-equals%EC%99%80-hashCode)
-> [Jpa Entity 의 Equals, 객체 동일성과 동등성, Lombok 을 써도 될까?](https://blog.yevgnenll.me/posts/jpa-entity-eqauls-and-hashcode-equality)
-
----
-
-## Repository
-### JpaRepository vs CommonRepository
-> JpaRepository 의 경우 기본적인 CRUD 관련 메서드가 제공되며, JpaRepository 를 상속받는 Repository 인터페이스는 앞의 이유로 기본적인 CRUD 관련 메서드가 
-> 개발자의 뜻과 상관없이 모두 노출(제공)된다.  
-> Repository 에 선언한 메서드만 외부로 노출하고 싶은 경우 CommonRepository 를 상속하여 사용한다.  
+> https://isntyet.github.io/jpa/JPA-%EB%B9%84%EA%B4%80%EC%A0%81-%EC%9E%A0%EA%B8%88(Pessimistic-Lock)/
+> https://reiphiel.tistory.com/entry/understanding-jpa-lock
+> https://sabarada.tistory.com/187
+> https://stir.tistory.com/251
+> https://kimdubi.github.io/mysql/skip_locked/
 
 ---
 
@@ -532,33 +553,6 @@
 
 ### 주의
 > EntityGraph 로 함께 조회하는 엔티티는 모두 `outer join` 이어서 `inner join` 위주로 조회시에는 JPQL 을 사용하여야한다.
-
----
-
-## 쓰기 지연 성능 최적화
-### spring.jpa.hibernate.jdbc.batch_size
-> JPA 의 사용시 엔티티를 영속화하게 되면 영속성 컨텍스트를 flush 할 때 insert 문이 발생한다.
-> 여러개의 엔티티를 영속화하게 되면 flush 하였을 때 여러개의 insert 문이 데이터베이스로 호출된다.  
-> 데이터베이스 통신과 같이 네트워크 통신 1번이 내부에서 동작하는 메서드 호출보다 몇만배는 더 큰 비용이 든다.
-> 그래서 여러번 나가는 insert 쿼리를 한번에 모아서 데이터베이스에 보내는 옵션이 `spring.jpa.hibernate.jdbc.batch_size` 이다.  
-> 
-> 값을 50으로 주면 최대 50개의 insert 문을 모아서 한꺼번에 데이터베이스에 보낸다. 하지만 SQL 배치는 같은 SQL 일 때만 유효하다.
-> 중간에 다른 처리가 들어가면 SQL 배치를 다시 시작한다. 예를 들면 다음과 같다.  
-> ```java
-> productRepository.save(new Product());    // 1
-> productRepository.save(new Product());    // 2
-> productRepository.save(new Product());    // 3
-> productRepository.save(new Order());      // 4, 다른 연산
-> productRepository.save(new Product());    // 5
-> productRepository.save(new Product());    // 6
-> ```
-> 1,2,3 을 모아서 하나의 SQL 배치로 실행하고 4를 따로 한 번 실행하고 5,6을 모아서 실행하여 총 3번의 SQL 배치를 실행한다.
-> 
-> 주의: `@GeneratedValue(strategy = GenerationType.IDENTITY)` 사용 시 AUTO_INCREMENT 를 사용하기 때문에 쓰기 지연이 발생하지 않고 즉시
-> insert SQL 이 데이터베이스에 호출된다.  
-> 
-> 참고: 엔티티가 영속 상태가 되려면 식별자가 꼭 필요하다. 그런데 `@GeneratedValue(strategy = GenerationType.IDENTITY)` 를 사용하게 되면 
-> 데이터베이스의 AUTO_INCREMENT 를 사용하여 식별자를 생성하기 때문에 식별자의 정보를 JPA 에서 알기 위해서는 insert 문을 통해서 데이터베이스와 통신할 수 밖에 없다.
 
 ---
 
