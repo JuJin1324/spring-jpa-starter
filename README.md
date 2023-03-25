@@ -77,6 +77,9 @@
 > 엔티티를 읽기만 하고 수정이 없이 트랜잭션을 종료하는 Service 의 메서드에 `@Transactional(readOnly = true)` 애노테이션을 붙이면 읽기 전용 트랜잭션으로 동작한다.
 > 트랜잭션을 커밋해도 영속성 컨텍스트를 플러시하지 않는다.
 
+### @Transactional(propagation = Propagation.REQUIRES_NEW)
+> TODO
+
 ---
 
 ## EntityListener
