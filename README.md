@@ -11,20 +11,19 @@
 > flush 는 영속성 컨텍스트의 내용을 데이터베이스에 반영하기 위해서 SQL 쿼리를 날리는 작업이다.(commit 제외)
 
 ### 생명 주기
-> 영속성 컨텍스트의 생명 주기는 기본적으로 트랜잭션의 시작시 생성되며 커밋 혹은 롤백 시 삭제된다.
+> 영속성 컨텍스트의 생명 주기는 기본적으로 트랜잭션의 시작 시 생성되며 커밋 혹은 롤백 시 삭제된다.
 >
 > OSIV 설정을 통해서 영속성 컨텍스트의 생명 주기를 Filter/Interceptor 를 시작으로 Controller -> Service -> Repository 를 거쳐서 다시
 > Filter/Interceptor 로 돌아오고나서 영속성 컨텐스트를 삭제하는 것도 가능하다.  
-> 하지만 OSIV 는 스프링에서 뷰를 제공할 때 고려해볼 수 있는 옵션이며 REST API 와 같이 API 를 제공할 시에는 DTO 객체와 같이 버전별 제공 데이터 관리와 같이
-> 완충지대를 제공하는 것이 나아보인다.
+> 하지만 OSIV 는 스프링에서 뷰를 제공할 때 고려해볼 수 있는 옵션이며 REST API 와 같이 API 를 제공할 시에는 DTO 객체로 완충지대를 제공하는 것이 나아보인다.
 
 ---
 
 ## N+1 성능 최적화
 ### N+1: Paging 혹은 List 조회 시 발생할 수 있는 문제
 > JPQL 에서 객체를 조회 후 조회한 객체의 연관 관계를 가진 객체를 사용할 때 영속성 컨텍스트에 해당 객체가 없기 때문에 추가로 조회 SQL 쿼리가 데이터베이스로 요청된다.  
-> ID 를 통해서 객체를 1개 조회할 때는 사실 쿼리가 2개 정도 나가는 것이기 때문에 큰 문제가 되지 않는다.  
-> 하지만 페이징이나 리스트 조회와 같이 한꺼번에 10~50개 정도의 객체를 조회했다고 가정하면 해당 객체의 연관 관계를 가진 객체를 사용하기 위해서 10~50개의 조회 SQL 쿼리가
+> ID 를 통해서 객체를 1개만 조회한 후 연관 관계를 가진 객체를 사용할 때는 추가 쿼리가 1개만 더 나가는 것이기 때문에 큰 문제가 되지 않는다.  
+> 하지만 페이징이나 리스트 조회와 같이 한꺼번에 50개 정도의 객체를 조회했다고 가정하면 해당 객체의 연관 관계를 가진 객체를 사용하기 위해서 50개의 조회 SQL 쿼리가
 > 추가로 데이터베이스에 요청된다.
 
 ### fetch join
@@ -36,7 +35,7 @@
 > ```
 
 ### OneToMany fetch join 주의 사항
-> fetch join 은 조회하려는 객체 내의 연관 관계의 객체와의 관계가 ManyToOne 인 경우에는 얼마든지 fetch join 을 함께 사용할 수 있다.   
+> fetch join 은 조회하려는 객체 내의 ManyToOne 연관 관계 객체인 경우 얼마든지 fetch join 을 함께 사용할 수 있다.   
 > 예시
 > ```java
 > @Query("select m from Member m " +
@@ -46,8 +45,8 @@
 > ...
 > ```
 >
-> 하지만 fetch join 중 ManyToOne 객체가 2개 이상 존재하는 경우(1개인 경우에는 문제가 되지 않는다.) PersistenceBag(ManyToOne 객체가 List 인 경우) 에러가 발생한다.  
-> fetch join 하는 ManyToOne 객체가 2개 이상인 경우에는 QueryDSL 을 사용하여 조회하거나 application.yml 에
+> 하지만 fetch join 중 OneToMany 객체가 2개 이상 존재하는 경우(1개인 경우에는 문제가 되지 않는다.) PersistenceBag(ManyToOne 객체가 List 인 경우) 에러가 발생한다.  
+> fetch join 하는 OneToMany 객체가 2개 이상인 경우에는 QueryDSL 을 사용하여 조회하거나 application.yml 에
 > `spring.jpa.properties.hibernate.default_batch_fetch_size` 옵션으로 1000 과 같은 값을 설정하여 사용하여 ManyToOne 객체 조회 시 조회 쿼리를 줄일 수 있다.
 
 ---
@@ -94,8 +93,8 @@
 > 3.@PreUpdate: flush 나 commit 을 호출해서 엔티티를 데이터베이스에 수정하기 직전에 호출.  
 > 4.@PreRemove: remove() 메서드를 호출해서 엔티티를 영속성 컨텍스트에서 삭제하기 직전에 호출.  
 > 5.@PostPersist: flush 나 commit 을 호출해서 엔티티를 데이터베이스에 저장한 직후에 호출.  
-> 6.PostUpdate: flush 나 commit 을 호출해서 엔티티를 데이터베이스에 수정한 직후에 호출.  
-> 7.PostRemove: flush 나 commit 을 호출해서 엔티티를 데이터베이스에 삭제한 직후에 호출.
+> 6.@PostUpdate: flush 나 commit 을 호출해서 엔티티를 데이터베이스에 수정한 직후에 호출.  
+> 7.@PostRemove: flush 나 commit 을 호출해서 엔티티를 데이터베이스에 삭제한 직후에 호출.
 
 ### 리스너 등록
 > 리스너 메서드들만 구현해서 Listener 클래스를 만들어서 엔티티에 해당 리스너를 사용하도록 할 수도 있다.  
@@ -192,7 +191,7 @@
 > Member 객체에서 참조하는 Team 객체에 지연로딩을 설정하였다면 해당 객체는 프록시 객체 상태로 되어있으며 Member 객체가 참조하는 Team 객체의 멤버 변수(property) 를
 > 사용하는 경우에 Team 프록시가 가지고 있는 Team 객체가 초기화된다.
 
-### ID(식별자)만 사용하는 경우
+### 연관 관계 객체의 ID(식별자)만 사용하는 경우
 > Member 객체가 참조하는 Team 객체의 멤버 변수를 자주 사용하는 경우 JPQL 에서 join 을 이용해서 처음부터 Team 객체를 초기화한 상태로 가져오는 경우가 있다.  
 > 하지만 Team 객체의 멤버 변수 중 ID(식별자)만 사용하는 경우 Team 객체가 초기화되어 있지 안더라도 사용할 수 있음으로 JPQL 에서 join 을 이용해서 가져올 필요가 없다.
 
@@ -214,7 +213,7 @@
 > Oracle 과 같은 시퀀스를 사용하는 DB 의 경우에는 시퀀스를 사용한다.(하지만 save 를 통해서 영속성 컨텍스트에 엔티티를 저장하기 위해서는 시퀀스 넘버를 얻어오는 쿼리가 실행된다.)
 
 ### 쓰기 지연 성능 최적화 - spring.jpa.hibernate.jdbc.batch_size
-> JPA 의 사용시 엔티티를 영속화하게 되면 영속성 컨텍스트를 flush 할 때 insert 문이 발생한다.
+> JPA 사용시 엔티티를 영속화하게 되면 영속성 컨텍스트를 flush 할 때 insert 문이 발생한다.
 > 여러개의 엔티티를 영속화하게 되면 flush 하였을 때 여러개의 insert 문이 데이터베이스로 호출된다.  
 > 데이터베이스 통신과 같이 네트워크 통신 1번이 내부에서 동작하는 메서드 호출보다 몇만배는 더 큰 비용이 든다.
 > 그래서 여러번 나가는 insert 쿼리를 한번에 모아서 데이터베이스에 보내는 옵션이 `spring.jpa.hibernate.jdbc.batch_size` 이다.
@@ -398,7 +397,7 @@
 
 ### 메서드 옆에 throws 붙이기
 > 메서드 옆에 throws 로 JPA 예외를 던지도록 명시하면 스프링 예외로 변환하지 않고 throws 선언한 예외로 예외를 발생시킨다.    
-> 주의점은 메서드 옆에 throws Exception 을 선언하게되는 경우인데 `java.lang.Exception` 을 throws 선언하면 스프링 예외로 변환하지 않고 발생시킨다.
+> 주의점은 메서드 옆에 throws Exception 을 선언하게되는 경우인데 `java.lang.Exception` 을 throws 선언하면 스프링 예외로 변환하지 않고 본래 예외를 발생시킨다.
 
 ---
 
