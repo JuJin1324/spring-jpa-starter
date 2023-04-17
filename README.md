@@ -22,9 +22,11 @@
 ## N+1 성능 최적화
 ### N+1: Paging 혹은 List 조회 시 발생할 수 있는 문제
 > JPQL 에서 객체를 조회 후 조회한 객체의 연관 관계를 가진 객체를 사용할 때 영속성 컨텍스트에 해당 객체가 없기 때문에 추가로 조회 SQL 쿼리가 데이터베이스로 요청된다.  
-> ID 를 통해서 객체를 1개만 조회한 후 연관 관계를 가진 객체를 사용할 때는 추가 쿼리가 1개만 더 나가는 것이기 때문에 큰 문제가 되지 않는다.  
+> 객체 안에 있는 연관 객체를 조회 시 FK 값을 이용하여 데이터베이스에 PK 조회로 연관 객체 조회 쿼리를 날린다.    
+> 단건 조회 요청으로 인하여 객체를 1개만 조회한 후 연관 관계를 가진 객체를 사용할 때는 추가 쿼리가 1개만 더 나가게 되어 총 조회 쿼리의 갯수가 2개가 된다. 
+> 쿼리가 1개 나간 것과 2개 나간 것은 성능 상 차이가 크지 않다.  
 > 하지만 페이징이나 리스트 조회와 같이 한꺼번에 50개 정도의 객체를 조회했다고 가정하면 해당 객체의 연관 관계를 가진 객체를 사용하기 위해서 50개의 조회 SQL 쿼리가
-> 추가로 데이터베이스에 요청된다.
+> 추가로 데이터베이스에 요청되어 총 조회 쿼리의 갯수가 100개가 되어버린다. 단 한번의 요청으로 인하여 조회 쿼리의 갯수가 100개가 발생한다면 이는 성능상 치명적이다.  
 
 ### fetch join
 > JPA 에서 조회한 객체 내의 연관 관계의 객체를 조회 시 추가로 발생하는 SQL 쿼리를 줄이기 위해서 JPQL 에서 fetch join 을 사용한다.  
@@ -35,7 +37,7 @@
 > ```
 
 ### OneToMany fetch join 주의 사항
-> fetch join 은 조회하려는 객체 내의 ManyToOne 연관 관계 객체인 경우 얼마든지 fetch join 을 함께 사용할 수 있다.   
+> fetch join 은 조회하려는 객체 내의 ManyToOne 연관 관계 객체인 경우 연관 관계 객체가 몇 개든지 fetch join 을 함께 사용할 수 있다.   
 > 예시
 > ```java
 > @Query("select m from Member m " +
@@ -46,7 +48,7 @@
 > ```
 >
 > 하지만 fetch join 중 OneToMany 객체가 2개 이상 존재하는 경우(1개인 경우에는 문제가 되지 않는다.) PersistenceBag(ManyToOne 객체가 List 인 경우) 에러가 발생한다.  
-> fetch join 하는 OneToMany 객체가 2개 이상인 경우에는 QueryDSL 을 사용하여 조회하거나 application.yml 에
+> fetch join 하는 OneToMany 객체가 2개 이상인 경우에는 QueryDSL 을 사용하여 쿼리를 나눠서 조회하거나 application.yml 에
 > `spring.jpa.properties.hibernate.default_batch_fetch_size` 옵션으로 1000 과 같은 값을 설정하여 사용하여 ManyToOne 객체 조회 시 조회 쿼리를 줄일 수 있다.
 
 ---
@@ -70,7 +72,9 @@
 > Repository 의 메서드 중 조회만을 위해서 사용되는 메서드인 경우 위의 `org.hibernate.readOnly` 쿼리 힌트 애노테이션을 붙여서 성능을 향상 시킬 수 있다.  
 > `org.hibernate.readOnly` 를 true 로 설정하면 영속성 컨텍스트에서 변경 감지를 위한 스냅샷 인스턴스를 보관하지 않아 애플리케이션의 메모리 사용이 줄어든다.  
 > 다만 해당 쿼리 힌트의 애노테이션을 사용하여 조회한 엔티티는 변경 감지를 위한 스냅샷 인스턴스가 없음으로 변경하고 커밋을 하더라도 데이터베이스에 반영되지 않기 때문에 사용에 조심해야한다.  
-> 이렇게 버그 발생 확률이 높기 때문에 성능상 이점이 큰지를 따져서 사용하는 것이 바람직하며 왠만하면 사용하지 않는다.(왠만해서는 큰 이점이 없는 듯 하다.)
+> readOnly 를 사용한 메서드의 경우 메서드 명의 뒷쪽에 readOnly 를 붙여주어 이 메서드가 읽기 전용이라는 것을 나타내야한다.
+> 그렇지 않으면 해당 메서드를 사용하고 엔티티를 수정을 하여 더티 체크가 발생할 것으로 기대할 수 있기 때문이다.  
+> 이렇게 버그 발생 확률이 높기 때문에 성능상 이점이 큰지를 따져서 사용하는 것이 바람직하며 왠만하면 사용하지 않는다.(왠만해서는 큰 이점이 없는 듯 하다.)  
 
 ### @Transactional(readOnly = true)
 > 엔티티를 읽기만 하고 수정이 없이 트랜잭션을 종료하는 Service 의 메서드에 `@Transactional(readOnly = true)` 애노테이션을 붙이면 읽기 전용 트랜잭션으로 동작한다.
@@ -192,15 +196,17 @@
 > 사용하는 경우에 Team 프록시가 가지고 있는 Team 객체가 초기화된다.
 
 ### 연관 관계 객체의 ID(식별자)만 사용하는 경우
-> Member 객체가 참조하는 Team 객체의 멤버 변수를 자주 사용하는 경우 JPQL 에서 join 을 이용해서 처음부터 Team 객체를 초기화한 상태로 가져오는 경우가 있다.  
-> 하지만 Team 객체의 멤버 변수 중 ID(식별자)만 사용하는 경우 Team 객체가 초기화되어 있지 안더라도 사용할 수 있음으로 JPQL 에서 join 을 이용해서 가져올 필요가 없다.
+> Member 객체가 참조하는 Team 객체의 멤버 변수를 자주 사용하는 경우 JPQL 에서 fetch join 을 이용해서 처음부터 Team 객체를 초기화한 상태로 가져오는 경우가 있다.  
+> 하지만 Team 객체의 멤버 변수 중 ID(식별자)만 사용하는 경우 Team 객체가 초기화되어 있지 안로 프록시 객체여도 ID 를 get 하여 사용할 수 있으므로 
+> JPQL 에서 fetch join 을 이용해서 가져올 필요가 없다.
 
 ---
 
 ## Entity 지연 쓰기
 ### 기본 전략
 > JPA 의 Entity 는 기본 전략으로 지연 쓰기를 사용한다.   
-> 지연 쓰기란 Entity 를 save 할 시에 transaction commit 후 flush 시점에 Entity 를 데이터베이스에 insert 쿼리를 모아서 한꺼번에 insert 시키는 전략이다.
+> 지연 쓰기란 하나의 트랜잭션에서 여러 Entity 를 save 할 시에 바로 insert 쿼리를 날리지 않고, transaction commit 을 하기 전까지 save 한 엔티티 정보를 모아두었다가
+> commit 이 발생하여 flush 하는 시점에 모아 놓은 Entity 들의 insert 쿼리를 모아서 한꺼번에 데이터베이스에 insert 시키는 전략이다.
 
 ### Auto Increment
 > 먼저 알아야할 점은 Entity 가 영속성 컨텍스트에 존재하기 위해서는 해당 Entity 객체가 식별자(PK)를 가지고 있어야한다는 점이다.      
@@ -266,9 +272,11 @@
 > 준영속 객체와 비교하려는 영속 객체의 property 일부가 변경된 경우가 존재하여 비즈니스 적으로는 같아야하는 객체인데 시점에 의해서 다른 객체로 인식할 수 있는 상황이 발생할 수 있음.
 
 ### 3.비즈니스 키를 사용한 동등성 구현하기
-> 영속 객체를 Set 객체에 준영속 객체를 추가해야하는 상황에서 가장 적합해보임.  
+> 영속 객체들을 담은 Set 객체에 준영속 객체를 추가해야하는 상황에서 가장 적합해보임.  
 > PK 를 제외하고 엔티티에서 가장 변경이 적으며 대체 식별자로 사용 가능한 Property 만 equals 메서드로 비교.  
-> 대체 식별자로 사용이 가능하려면 1.UNIQUE 제약 조건을 가져야하며, 2.변경 횟수가 다소 적은 편에 속하여야한다.   
+> 대체 식별자로 사용이 가능하려면   
+> 1.UNIQUE 제약 조건을 가져야하며   
+> 2.변경 횟수가 다소 적은 편에 속하여야한다.     
 > 위의 PK 를 제외하고 equals() 구현에서 맹점이 되었던 영속 객체의 property 일부가 변경된 경우에도 동일 객체로 인식할 수 있음.
 >
 > 비즈니스 키는 유일성만 보장되면 가끔 있는 변경 정도는 허용해도 좋다. 따라서 데이터베이스 기본 키 같이 너무 딱딱하게 정하지 않아도 된다.
@@ -312,7 +320,7 @@
 > 
 > JpaRepository 를 상속하게 되면 JpaRepository 에 선언된 메서드들을 Override 하여 구현하지 않아도 모두 사용 가능해진다.  
 > 
-> JpaRepository 는 제네릭 인터페이스로 첫번째 인자는 해당 리포지토리가 접근하는 엔티티 클래스, 두번째 인자는 해당 엔티티의 PK 자료형을 입력한다.  
+> JpaRepository 는 제네릭 인터페이스로 첫번째 인자는 해당 리포지토리가 접근하는 엔티티 클래스, 두번째 인자는 해당 엔티티의 식별자(PK) 자료형을 입력한다.  
 > 예시: Order 엔티티의 데이터베이스 접근을 위한 Repository 인터페이스 생성
 > ```java
 > public interface OrderRepository extends JpaRepository<Order, Long> {
@@ -338,11 +346,11 @@
 
 ### 벌크성 쿼리 주의 사항
 > JpaRepository 를 상속받는 리포지토리에서 벌크성 데이터 수정/삭제를 위한 쿼리에는 `@Modifying` 애노테이션을 붙이며,
-> 해당 애노테이션의 옵션에는 `clearAutomatically = true/false, flush` 및 `flushAutomatically = true/false` 가 있다.  
+> 해당 애노테이션의 옵션에는 `clearAutomatically = true/false` 및 `flushAutomatically = true/false` 가 있다.  
 > 벌크성 쿼리는 JPA Entity LifeCycle 을 무시하고 쿼리가 실행되기 때문 해당 쿼리를 사용할 때는 영속성 컨텍스트 관리에 주의해야 한다.  
 
 ### @Modifying - clearAutomatically 
-> 이 Attribute는 @Modifying 이 붙은 해당 쿼리 메서드 실행 직 후, 역속성 컨텍스트를 clear 할 것인지를 지정하는 Attribute 이다. default 값은 false.  
+> 이 Attribute는 @Modifying 이 붙은 해당 쿼리 메서드 실행 직 후, 영속성 컨텍스트를 clear 할 것인지를 지정하는 Attribute 이다. default 값은 false.  
 > 
 > `clearAutomatically=false` 는 해당 벌크 쿼리가 실행된 후 영속성 컨테스트를 그대로 둔다.  
 > 벌크 쿼리는 영속성 컨텍스트를 거치지 않고 데이터베이스에 쿼리를 실행하는 형태이기 때문에 벌크 쿼리를 통해서 영속성 컨텍스트가 수정되는 일은 없다.  
@@ -403,7 +411,7 @@
 
 ## JPQL
 ### Collection fetch join  
-> JPQL 을 통한 조회 시 둘 이상의 컬렉션을 fetch 할 수 없다.  
+> JPQL 을 통한 조회 시 둘 이상의 컬렉션을 fetch join 할 수 없다.  
 > 둘 이상의 컬렉션을 fetch join 한 JPQL 을 실행하면 다음의 예외가 발생한다: 
 > `PersistenceException: org.hibernate.loader.MultipleBagFetchExcetpino: cannot simultaneously fetch multiple bags`  
 > 
