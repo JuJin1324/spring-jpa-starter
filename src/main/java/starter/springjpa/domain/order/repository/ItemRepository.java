@@ -1,6 +1,6 @@
 package starter.springjpa.domain.order.repository;
 
-import starter.springjpa.domain.entity.repository.CommonRepository;
+import starter.springjpa.global.repository.CommonRepository;
 import starter.springjpa.domain.order.entity.Item;
 
 import java.util.List;

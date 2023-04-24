@@ -4,7 +4,7 @@ import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import starter.springjpa.domain.entity.base.BaseTimeEntity;
+import starter.springjpa.global.repository.BaseTimeEntity;
 import starter.springjpa.domain.user.entity.User;
 
 import javax.persistence.*;

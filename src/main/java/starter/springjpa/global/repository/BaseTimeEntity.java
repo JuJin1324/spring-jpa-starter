@@ -1,4 +1,4 @@
-package starter.springjpa.domain.entity.base;
+package starter.springjpa.global.repository;
 
 import lombok.AccessLevel;
 import lombok.Getter;
