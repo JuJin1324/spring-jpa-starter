@@ -1,4 +1,4 @@
-package starter.springjpa.domain.entity.repository;
+package starter.springjpa.global.repository;
 
 import org.springframework.data.repository.NoRepositoryBean;
 import org.springframework.data.repository.Repository;

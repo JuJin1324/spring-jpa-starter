@@ -582,3 +582,65 @@
 
 ### 참조사이트
 > [강의에는 없는 내용이지만.. cache 관련해서 질문이 있습니다.](https://www.inflearn.com/questions/33629/%EA%B0%95%EC%9D%98%EC%97%90%EB%8A%94-%EC%97%86%EB%8A%94-%EB%82%B4%EC%9A%A9%EC%9D%B4%EC%A7%80%EB%A7%8C-cache-%EA%B4%80%EB%A0%A8%ED%95%B4%EC%84%9C-%EC%A7%88%EB%AC%B8%EC%9D%B4-%EC%9E%88%EC%8A%B5%EB%8B%88%EB%8B%A4)
+
+---
+
+## JSON 저장
+> RDB 에 JSON 자료형 저장을 위한 JPA 활용을 정리한다.
+
+### Converter
+> 제네릭 객체를 JSON 으로 변환하여 저장해줄 Converter 를 만든다.
+> 
+> JsonConverter.java
+> ```java
+> @Converter
+> public class JsonConverter<T> implements AttributeConverter<T, String> {
+> 
+>     protected final ObjectMapper objectMapper;
+> 
+>     public JsonConverter() {
+>         objectMapper = new ObjectMapper();
+>     }
+> 
+>     @Override
+>     public String convertToDatabaseColumn(T attribute) {
+>         if (ObjectUtils.isEmpty(attribute)) {
+>             return null;
+>         }
+>         try {
+>             return objectMapper.writeValueAsString(attribute);
+>         } catch (Exception e) {
+>             throw new RuntimeException(e);
+>         }
+>     }
+> 
+>     @Override
+>     public T convertToEntityAttribute(String dbData) {
+>         if (StringUtils.hasText(dbData)) {
+>             Class<?> aClass =
+>                     GenericTypeResolver.resolveTypeArgument(getClass(), JsonConverter.class);
+>             try {
+>                 return (T) objectMapper.readValue(dbData, aClass);
+>             } catch (Exception e) {
+>                 throw new RuntimeException(e);
+>             }
+>         }
+>         return null;
+>     }
+> }
+> ```
+> 
+> 위의 JsonConverter 를 상속받아 DataType1 객체를 JSON 으로 변환할 Converter 를 만든다.  
+> DataType1ToJsonConverter.java
+> ```java
+> @Converter(autoApply = true)
+> public class DataType1ToJsonConverter extends JsonConverter<DataType1> {
+> }
+> ```
+
+### 엔티티
+> @Column 애노테이션에 `columnDefinition = "json"` 설정한다.
+> ```java
+> @Column(name = "data_type", columnDefinition = "json")
+> private DataType1 dataType;
+> ```

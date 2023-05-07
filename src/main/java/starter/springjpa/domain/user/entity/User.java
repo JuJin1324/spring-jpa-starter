@@ -3,7 +3,7 @@ package starter.springjpa.domain.user.entity;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import starter.springjpa.domain.entity.base.BaseTimeEntity;
+import starter.springjpa.global.repository.BaseTimeEntity;
 
 import javax.persistence.*;
 import java.util.UUID;
