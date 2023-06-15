@@ -537,6 +537,7 @@
 > write-lock 을 요청하면 이전 트랜잭션의 write-lock 이 unlock 될 때 까지 기다리는게 기본 동작이다.  
 > `nowait` 옵션은 쿼리 실행 후 읽으려는 row 에 lock 걸려있으면 바로 트랜잭션 실패 처리를 한다.
 >
+> 비관적 락 사용시 교착 상태에 빠질 수 있음으로 락 타임아웃을 설정하는 것이 좋다.  
 > 비관적 락 타임아웃은 각 DB 마다 해당 설정이 존재한다. (MySQL 에서는 innodb_lock_wait_timeout 이다)  
 > @Repository 의 메서드에 `@QueryHints({@QueryHint(name = "javax.persistence.lock.timeout", value = "3000")})` 를 통해서 설정할 수 있다.
 
