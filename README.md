@@ -21,24 +21,23 @@
 
 ## N+1 성능 최적화
 ### N+1: Paging 혹은 List 조회 시 발생할 수 있는 문제
-> JPQL 에서 객체를 조회 후 조회한 객체의 연관 관계를 가진 객체를 사용할 때 영속성 컨텍스트에 해당 객체가 없기 때문에 추가로 조회 SQL 쿼리가 데이터베이스로 요청된다.  
-> 객체 안에 있는 연관 객체를 조회 시 FK 값을 이용하여 데이터베이스에 PK 조회로 연관 객체 조회 쿼리를 날린다.    
-> 단건 조회 요청으로 인하여 객체를 1개만 조회한 후 연관 관계를 가진 객체를 사용할 때는 추가 쿼리가 1개만 더 나가게 되어 총 조회 쿼리의 갯수가 2개가 된다. 
-> 쿼리가 1개 나간 것과 2개 나간 것은 성능 상 차이가 크지 않다.  
-> 하지만 페이징이나 리스트 조회와 같이 한꺼번에 50개 정도의 객체를 조회했다고 가정하면 해당 객체의 연관 관계를 가진 객체를 사용하기 위해서 50개의 조회 SQL 쿼리가
-> 추가로 데이터베이스에 요청되어 총 조회 쿼리의 갯수가 100개가 되어버린다. 단 한번의 요청으로 인하여 조회 쿼리의 갯수가 100개가 발생한다면 이는 성능상 치명적이다.  
+> JPQL 에서 객체를 조회했을 때 조회한 객체의 연관 관계를 가진 객체를 사용할 때 영속성 컨텍스트에 해당 객체가 없기 때문에 추가로 조회 SQL 쿼리가 데이터베이스로 요청된다.   
+> 단건 조회 요청으로 인하여 객체를 1개만 조회한 후 연관 관계를 가진 객체를 사용할 때는 추가 쿼리가 1개가 더 나가게 되어 총 조회 쿼리의 갯수가 2개가 된다. 
+> 이때 쿼리가 1개 나간 것과 2개 나간 것은 성능 상 차이가 크지 않다.  
+> 하지만 페이징이나 리스트 조회와 같이 한꺼번에 50개 정도의 객체를 조회했다고 가정해보면 해당 객체의 연관 관계를 가진 객체를 사용하기 위해서 50개의 조회 SQL 쿼리가
+> 추가로 데이터베이스에 요청되어 총 조회 쿼리의 갯수가 100개가 되어버린다. 한번의 요청으로 인하여 조회 쿼리의 갯수가 100개가 발생한다면 이는 성능상 치명적이 되어버린다.  
 
 ### fetch join
 > JPA 에서 조회한 객체 내의 연관 관계의 객체를 조회 시 추가로 발생하는 SQL 쿼리를 줄이기 위해서 JPQL 에서 fetch join 을 사용한다.  
-> 예시
+> 예시)
 > ```java
 > @Query("select m from Member m inner join fetch m.orders")
 > ...
 > ```
 
 ### OneToMany fetch join 주의 사항
-> fetch join 은 조회하려는 객체 내의 ManyToOne 연관 관계 객체인 경우 연관 관계 객체가 몇 개든지 fetch join 을 함께 사용할 수 있다.   
-> 예시
+> fetch join 은 조회하려는 객체 내의 다대일(ManyToOne) 연관 관계 객체인 경우 연관 관계 객체가 몇 개든지 fetch join 을 함께 사용할 수 있다.   
+> 예시)
 > ```java
 > @Query("select m from Member m " +
 >        "inner join fetch m.profile " +
@@ -47,9 +46,11 @@
 > ...
 > ```
 >
-> 하지만 fetch join 중 OneToMany 객체가 2개 이상 존재하는 경우(1개인 경우에는 문제가 되지 않는다.) PersistenceBag(ManyToOne 객체가 List 인 경우) 에러가 발생한다.  
+> 하지만 fetch join 중 일대다(OneToMany) 객체가 2개 이상 존재하는 경우(1개인 경우에는 문제가 되지 않는다.) 
+> PersistenceBag 에러가 발생한다.  
 > fetch join 하는 OneToMany 객체가 2개 이상인 경우에는 QueryDSL 을 사용하여 쿼리를 나눠서 조회하거나 application.yml 에
-> `spring.jpa.properties.hibernate.default_batch_fetch_size` 옵션으로 1000 과 같은 값을 설정하여 사용하여 ManyToOne 객체 조회 시 조회 쿼리를 줄일 수 있다.
+> `spring.jpa.properties.hibernate.default_batch_fetch_size` 옵션으로 1000 과 같은 값을 설정하여 사용하여 fetch join 없이 
+> ManyToOne 객체를 조회하는 경우 조회 쿼리를 줄일 수 있다.
 
 ---
 
@@ -72,7 +73,7 @@
 > Repository 의 메서드 중 조회만을 위해서 사용되는 메서드인 경우 위의 `org.hibernate.readOnly` 쿼리 힌트 애노테이션을 붙여서 성능을 향상 시킬 수 있다.  
 > `org.hibernate.readOnly` 를 true 로 설정하면 영속성 컨텍스트에서 변경 감지를 위한 스냅샷 인스턴스를 보관하지 않아 애플리케이션의 메모리 사용이 줄어든다.  
 > 다만 해당 쿼리 힌트의 애노테이션을 사용하여 조회한 엔티티는 변경 감지를 위한 스냅샷 인스턴스가 없음으로 변경하고 커밋을 하더라도 데이터베이스에 반영되지 않기 때문에 사용에 조심해야한다.  
-> readOnly 를 사용한 메서드의 경우 메서드 명의 뒷쪽에 readOnly 를 붙여주어 이 메서드가 읽기 전용이라는 것을 나타내야한다.
+> readOnly 를 사용한 메서드의 경우 메서드 명의 뒷쪽에 readOnly 를 붙여주어 이 메서드가 읽기 전용이라는 것을 나타내도록하자.  
 > 그렇지 않으면 해당 메서드를 사용하고 엔티티를 수정을 하여 더티 체크가 발생할 것으로 기대할 수 있기 때문이다.  
 > 이렇게 버그 발생 확률이 높기 때문에 성능상 이점이 큰지를 따져서 사용하는 것이 바람직하며 왠만하면 사용하지 않는다.(왠만해서는 큰 이점이 없는 듯 하다.)  
 
@@ -330,19 +331,18 @@
 ### CommonRepository
 > JpaRepository 를 상속받은 경우 해당 Repository 는 JpaRepository 에 선언된 모든 메서드를 외부에 제공하게 된다.  
 > 하지만 JpaRepository 에 선언된 모든 메서드가 아닌 Repository 에 선언된 메서드만 외부에 제공하고 싶어지는 경우가 있다.  
-> 그런 경우 JpaRepository 를 상속받지 말고 CommonRepository 인터페이스를 직접 생성 후 Repository 에 해당 인터페이스를 상속받는 형태로 만든다.  
+> 그런 경우 JpaRepository 를 상속받지 말고 Repository 인터페이스를 상속받는 형태로 만든다.  
 > 
 > CommonRepository.java
 > ```java
-> @NoRepositoryBean
-> public interface CommonRepository<T, ID extends Serializable> extends Repository<T, ID> {
+> public interface OrderRepository extends Repository<Order, Long> {
 > }
 > ```
 
-### JpaRepository vs CommonRepository
+### JpaRepository vs Repository
 > JpaRepository 의 경우 기본적인 CRUD 관련 메서드가 제공되며, JpaRepository 를 상속받는 Repository 인터페이스는 앞의 이유로 기본적인 CRUD 관련 메서드가
 > 개발자의 뜻과 상관없이 모두 노출(제공)된다.  
-> Repository 에 선언한 메서드만 외부로 노출하고 싶은 경우 CommonRepository 를 상속하여 사용한다.
+> 상속받은 Repository 에서 선언한 메서드만 외부로 노출하고 싶은 경우 Repository 를 상속하여 사용한다.  
 
 ### 벌크성 쿼리 주의 사항
 > JpaRepository 를 상속받는 리포지토리에서 벌크성 데이터 수정/삭제를 위한 쿼리에는 `@Modifying` 애노테이션을 붙이며,
@@ -400,8 +400,8 @@
 
 ### SpringBoot 2.0 + Spring Data JPA
 > SpringBoot 2.0 이상의 버전과 Spring Data JPA 를 사용하면 JPA 예외를 스프링 변환 예외로 변경시키기 위해서 위의 `PersistenceExceptionTranslationPostProcessor` 를
-> 스프링 빈으로 등록할 필요없이 자동으로 등록되며, @Repository 애노테이션을 붙인 클래스, JpaRepository 를 상속받은 인터페이스 및 Repository 를 상속받은 인터페이스(CommonRepository)까지
-> 모두 스프링 변환 예외가 적용된다.
+> 스프링 빈으로 등록할 필요없이 자동으로 등록되며, @Repository 애노테이션을 붙인 클래스, JpaRepository 를 상속받은 인터페이스 및 Repository 를 
+> 상속받은 인터페이스까지 모두 스프링 변환 예외가 적용된다.
 
 ### 메서드 옆에 throws 붙이기
 > 메서드 옆에 throws 로 JPA 예외를 던지도록 명시하면 스프링 예외로 변환하지 않고 throws 선언한 예외로 예외를 발생시킨다.    
@@ -413,7 +413,7 @@
 ### Collection fetch join  
 > JPQL 을 통한 조회 시 둘 이상의 컬렉션을 fetch join 할 수 없다.  
 > 둘 이상의 컬렉션을 fetch join 한 JPQL 을 실행하면 다음의 예외가 발생한다: 
-> `PersistenceException: org.hibernate.loader.MultipleBagFetchExcetpino: cannot simultaneously fetch multiple bags`  
+> `PersistenceException: org.hibernate.loader.MultipleBagFetchExcetpion: cannot simultaneously fetch multiple bags`  
 > 
 > 컬렉션을 fetch join 시 (OneToMany 객체 참조) 페이징 API 를 사용할 수 없다.  
 > JPA 구현체로 Hibernate 를 사용하는 경우 경고 로그를 남기면서 메모리에서 페이징 처리가 되지만, 데이터가 많을 시 성능 이슈 및 메모리 초과 예외가 발생할 수 있다.  
@@ -596,7 +596,7 @@
 > @Converter
 > public class JsonConverter<T> implements AttributeConverter<T, String> {
 > 
->     protected final ObjectMapper objectMapper;
+>     private final ObjectMapper objectMapper;
 > 
 >     public JsonConverter() {
 >         objectMapper = new ObjectMapper();
@@ -604,7 +604,7 @@
 > 
 >     @Override
 >     public String convertToDatabaseColumn(T attribute) {
->         if (ObjectUtils.isEmpty(attribute)) {
+>         if (attribute == null) {
 >             return null;
 >         }
 >         try {
@@ -616,7 +616,7 @@
 > 
 >     @Override
 >     public T convertToEntityAttribute(String dbData) {
->         if (StringUtils.hasText(dbData)) {
+>         if (dbData != null && !dbData.isBlank()) {
 >             Class<?> aClass =
 >                     GenericTypeResolver.resolveTypeArgument(getClass(), JsonConverter.class);
 >             try {
