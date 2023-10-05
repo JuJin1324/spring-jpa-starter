@@ -323,18 +323,6 @@
 
 ---
 
-## 상속관계 맵핑 전략
-### Single Table 전략
-> TODO
-
-### Join 전략
-> TODO
-
-### Table Per Class 전략
-> TODO
-
----
-
 ## Spring Data JPA
 ### 설명
 > Spring 에서 JPA 를 사용 시 Spring Data JPA 를 통해서 사용.
