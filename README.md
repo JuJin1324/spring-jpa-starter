@@ -81,8 +81,42 @@
 > 엔티티를 읽기만 하고 수정이 없이 트랜잭션을 종료하는 Service 의 메서드에 `@Transactional(readOnly = true)` 애노테이션을 붙이면 읽기 전용 트랜잭션으로 동작한다.
 > 트랜잭션을 커밋해도 영속성 컨텍스트를 플러시하지 않는다.
 
+### @Transactional(propagation = Propagation.REQUIRED)
+> 디폴트 값.  
+> 기본적으로 해당 메서드를 호출한 곳에서 별도의 트랜잭션이 설정되어 있지 않았다면 트랜잭셕을 새로 시작한다.  
+> 만약, 호출한 곳에서 이미 트랜잭션이 설정되어 있다면 기존의 트랜잭션 내에서 로직을 실행한다.  
+> 예외가 발생하면 롤백이 되고 호출한 곳에도 롤백이 전파된다.  
+
 ### @Transactional(propagation = Propagation.REQUIRES_NEW)
-> TODO
+> 매번 새로운 트랜잭션을 시작한다. (새로운 연결을 생성하고 실행한다.) 만약, 호출한 곳에서 이미 트랜잭션이 설정되어 있다면(기존의 연결이 존재한다면) 
+> 기존의 트랜잭션은 메써드가 종료할 때까지 잠시 대기 상태로 두고 자신의 트랜잭션을 실행한다. 
+> 새로운 트랜잭션 안에서 예외가 발생해도 호출한 곳에는 롤백이 전파되지 않는다. 즉, 2개의 트랜잭션은 완전히 독립적인 별개로 단위로 작동한다.  
+
+### @Transactional 사용시 주의사항
+> @Transactional 은 AOP 프록시를 통해서 동작함으로 같은 클래스의 메서드에서 @Transactional 애노테이션이 붙은 메서드를 호출하게 되면 애노테이션이
+> 동작하지 않는다.  
+> 
+> 트랜잭션이 분리될 것으로 예상하지만, 실제로는 분리되지 않는 코드
+>```java
+> public class saveService(XxxEntity xxxEntity) {
+>     //...
+> 
+>     @Transactional
+>     public void totalSave(XxxEntity xxxEntity) {
+>         // save 로직
+>         // savePart1(xxxEntity);
+>     }
+>     
+>     @Transactional(propagation = Propagation.REQUIRES_NEW)
+>     public void savePart1(XxxEntity xxxEntity) {
+>         // savePart1 로직 - xxxEntity 이용
+>     }
+> }
+> ```
+
+### 참조사이트
+> [Spring Boot, @Transactional 전파 레벨 정리](https://jsonobject.tistory.com/467)  
+> 
 
 ---
 
