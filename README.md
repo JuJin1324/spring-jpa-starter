@@ -664,3 +664,39 @@
 > @Column(name = "data_type", columnDefinition = "json")
 > private DataType1 dataType;
 > ```
+
+---
+
+## 테스트
+### @DataJpaTest
+> * `@DataJpaTest` : Spring 에서 JPA 관련 테스트 설정만 로드한다. DataSource 의 설정이 정상적인지, 
+> 제대로 생성 수정 삭제 조회 하는지 등의 테스트가 가능하다.
+> 
+> * @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE):
+> @DataJpaTest 를 사용하면 자동으로 EmbededDatabase 를 사용하기 때문에 내가 설정한 설정값들을 사용할 수 없다.  
+> 이 설정을 replace 해서 해당 설정이 동작하지 않고, 내가 설정한 설정파일대로 만들어진 DataSoruce 가 Bean 으로 등록된다.  
+> yml 이나 properties 에서 내가 설정한 설정파일대로 사용하려면 (내가 설정한 H2, MySQL,Oracle 등) NONE 옵션을 사용해서 사용해야 한다.    
+>
+> 예시
+> ```java
+> @DataJpaTest
+> @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+> class MemberRepositoryTest {
+>     @Autowired
+>     MemberRepository memberRepository;
+>     
+>     @Test 
+>     void save() { 
+>         memberRepository.save(
+>                Member.builder()
+>                       .age(1)
+>                       .email("email@email.com")
+>                       .name("name")
+>                       .build()
+>         );
+>     }
+> }
+> ```
+
+### 참조사이트
+> [Spring Boot JPA Test @DataJpaTest 기본 설정](https://0soo.tistory.com/40)
